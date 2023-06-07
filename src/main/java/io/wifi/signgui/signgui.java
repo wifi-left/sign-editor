@@ -7,8 +7,6 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.SignBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.option.KeyBinding;
@@ -64,9 +62,8 @@ public class signgui implements ModInitializer {
                         ServerWorldAccess world = (ServerWorldAccess) player.getWorld();
                         // 获取方块状态和方块实体
                         BlockEntity be = world.getBlockEntity(signPos);
-                        BlockState signState = world.getBlockState(signPos);
                         // 检查方块是否是告示牌
-                        if (signState.getBlock() instanceof SignBlock && be instanceof SignBlockEntity) {
+                        if (be instanceof SignBlockEntity) {
                             SignBlockEntity sign = (SignBlockEntity) be;
                             for (int i = 0; i < 4; ++i) {
                                 // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
@@ -121,13 +118,14 @@ public class signgui implements ModInitializer {
                 if (hitResult.getType() == HitResult.Type.BLOCK) {
                     BlockHitResult blockHitResult = (BlockHitResult) hitResult;
                     BlockPos blockPos = blockHitResult.getBlockPos();
-                    BlockState blockState = client.world.getBlockState(blockPos);
+                    // BlockState blockState = client.world.getBlockState(blockPos);
+                    BlockEntity blockEntity = client.world.getBlockEntity(blockPos);
                     // 检查方块是否是告示牌
-                    if (blockState.getBlock() instanceof SignBlock) {
+                    if (blockEntity instanceof SignBlockEntity) {
                         // 打开自定义 GUI
-                        SignBlockEntity sign = (SignBlockEntity) client.world.getBlockEntity(blockPos);
+                        SignBlockEntity sign = (SignBlockEntity) blockEntity;
                         // client.player.networkHandler.sendPacket(new SignEditorOpenC2SPacket(sign.getPos()));
-                        client.setScreen(new MyGuiScreen(sign, client));
+                        client.setScreen(new MyGuiScreen(sign));
                     } else {
                         client.player.sendMessage(Text.translatable("msg.signgui.not_a_sign"));
                     }

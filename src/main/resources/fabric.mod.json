@@ -3,7 +3,7 @@
   "id": "signeditgui",
   "version": "${version}",
 
-  "name": "Minecraft-Sign-Gui",
+  "name": "Bamboo-Sign-Editor",
   "description": "Minecraft Sign Editor (GUI)",
   "authors": [
     "wifi_left"

@@ -1,6 +1,5 @@
 package io.wifi.signgui;
 
-import net.minecraft.client.MinecraftClient;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.block.entity.SignBlockEntity;
@@ -29,21 +28,18 @@ public class MyGuiScreen extends Screen {
 
     private ButtonWidget confirmButton;
     private ButtonWidget cancelButton;
-    private MinecraftClient client;
-
     // 创建两个按钮
     private final SignBlockEntity sign;
 
-    public MyGuiScreen(SignBlockEntity sign, MinecraftClient client2) {
+    public MyGuiScreen(SignBlockEntity sign) {
         super(Text.translatable("gui.wifi.signgui.title")); // 设置GUI的标题
         this.sign = sign; // 保存告示牌方块实体对象
-        this.client = client2;
     }
 
     @Override
     protected void init() {
         super.init();
-        this.client.keyboard.setRepeatEvents(true); // 设置键盘重复事件
+        // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
         for (int i = 0; i < 4; ++i) {
             // 获取告示牌的文本内容
@@ -108,57 +104,58 @@ public class MyGuiScreen extends Screen {
             this.addDrawableChild(this.commandField[i]); // 添加文本框对象到GUI中
 
         }
-        confirmButton = new ButtonWidget(this.width / 2 - 104, 48 + 4 * 48, 100, 20,
-                Text.translatable("gui.ok"), button -> {
-                    // 确认按钮的点击事件，发送数据包给服务器，更新告示牌的文本和命令
-                    BlockPos pos = sign.getPos();
-                    for (int i = 0; i < 4; ++i) {
-                        // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-                        String text = textFields[i].getText();
-                        MutableText literalText = Text.literal(text.replaceAll("&", "§"));
-                        String ColorName = colorFields[i].getText();
-                        if (ColorName == null || ColorName == "")
-                            ColorName = "black";
-                        TextColor textColor = TextColor.parse(ColorName);
-                        String cmd = commandField[i].getText();
-                        if (cmd != "") {
-                            // client.player.sendCommand(scmd);
-                            ClickEvent clickEvent = new ClickEvent(Action.RUN_COMMAND, cmd);
-                            literalText
-                                    .setStyle(literalText.getStyle().withColor(textColor).withClickEvent(
-                                            clickEvent));
-                        } else {
-                            literalText.setStyle(literalText.getStyle().withColor(textColor));
-                        }
-                        sign.setTextOnRow(i, literalText); // 设置告示牌方块实体的文本内容
-                    }
+        
+        confirmButton = ButtonWidget.builder(Text.translatable("gui.ok"), button -> {
+            // 确认按钮的点击事件，发送数据包给服务器，更新告示牌的文本和命令
+            BlockPos pos = sign.getPos();
+            for (int i = 0; i < 4; ++i) {
+                // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
+                String text = textFields[i].getText();
+                MutableText literalText = Text.literal(text.replaceAll("&", "§"));
+                String ColorName = colorFields[i].getText();
+                if (ColorName == null || ColorName == "")
+                    ColorName = "black";
+                TextColor textColor = TextColor.parse(ColorName);
+                String cmd = commandField[i].getText();
+                if (cmd != "") {
+                    // client.player.sendCommand(scmd);
+                    ClickEvent clickEvent = new ClickEvent(Action.RUN_COMMAND, cmd);
+                    literalText
+                            .setStyle(literalText.getStyle().withColor(textColor).withClickEvent(
+                                    clickEvent));
+                } else {
+                    literalText.setStyle(literalText.getStyle().withColor(textColor));
+                }
+                sign.setTextOnRow(i, literalText); // 设置告示牌方块实体的文本内容
+            }
 
-                    sign.markDirty(); // 标记告示牌方块实体为脏数据，以便同步到服务器端
+            sign.markDirty(); // 标记告示牌方块实体为脏数据，以便同步到服务器端
 
-                    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-                    buf.writeBlockPos(pos);
-                    for (int i = 0; i < 4; ++i) {
-                        // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-                        String text = textFields[i].getText().replaceAll("&", "§");
-                        String ColorName = colorFields[i].getText();
-                        if (ColorName == null || ColorName == "")
-                            ColorName = "black";
-                        String cmd = commandField[i].getText();
-                        buf.writeString(text);
-                        buf.writeString(ColorName);
-                        buf.writeString(cmd);
-                    }
-                    ClientPlayNetworking.send(signgui.UPDATE_SIGN_PACKET_ID, buf);
-                    // 关闭 GUI & 修改文本
-                    this.close();
-                });
-        cancelButton = new ButtonWidget(this.width / 2 + 4, 4 * 48 + 48, 100, 20, Text.translatable("gui.cancel"),
-                button ->
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+            buf.writeBlockPos(pos);
+            for (int i = 0; i < 4; ++i) {
+                // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
+                String text = textFields[i].getText().replaceAll("&", "§");
+                String ColorName = colorFields[i].getText();
+                if (ColorName == null || ColorName == "")
+                    ColorName = "black";
+                String cmd = commandField[i].getText();
+                buf.writeString(text);
+                buf.writeString(ColorName);
+                buf.writeString(cmd);
+            }
+            ClientPlayNetworking.send(signgui.UPDATE_SIGN_PACKET_ID, buf);
+            // 关闭 GUI & 修改文本
+            this.close();
+        }).position(this.width / 2 - 104, 48 + 4 * 48).size(100, 20).build();
 
-                {
-                    // 取消按钮的点击事件，关闭 GUI
-                    this.close();
-                });
+        cancelButton = ButtonWidget.builder(Text.translatable("gui.cancel"), button ->
+
+        {
+            // 取消按钮的点击事件，关闭 GUI
+            this.close();
+        }).position(this.width / 2 + 4, 4 * 48 + 48).size(100,20).build();
+
         this.addDrawableChild(confirmButton); // 添加确认按钮对象到GUI中
         this.addDrawableChild(cancelButton); // 添加取消按钮对象到GUI中
         // 创建一个文本框对象，并设置其位置、大小、最大长度等属性
@@ -170,7 +167,7 @@ public class MyGuiScreen extends Screen {
     @Override
     public void removed() {
         super.removed();
-        this.client.keyboard.setRepeatEvents(false); // 取消键盘重复事件
+        // this.client.keyboard.setRepeatEvents(false); // 取消键盘重复事件
 
         // // 遍历告示牌的每一行文本
         // for (int i = 0; i < 4; ++i) {
@@ -193,13 +190,13 @@ public class MyGuiScreen extends Screen {
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         this.renderBackground(matrices); // 渲染背景
 
-        drawCenteredText(matrices, this.textRenderer, this.title, this.width / 2, 20, 16777215); // 渲染标题
+        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2, 20, 16777215); // 渲染标题
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
-            drawCenteredText(matrices, this.textRenderer,
+            drawCenteredTextWithShadow(matrices, this.textRenderer,
                     Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 170, 52 + i * 48,
                     16777215); // 渲染文本标签
-            drawCenteredText(matrices, this.textRenderer,
+            drawCenteredTextWithShadow(matrices, this.textRenderer,
                     Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 170, 72 + i * 48,
                     16777215); // 渲染命令标签
 

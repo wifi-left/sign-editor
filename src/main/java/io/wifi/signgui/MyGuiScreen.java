@@ -108,28 +108,7 @@ public class MyGuiScreen extends Screen {
         confirmButton = ButtonWidget.builder(Text.translatable("gui.ok"), button -> {
             // 确认按钮的点击事件，发送数据包给服务器，更新告示牌的文本和命令
             BlockPos pos = sign.getPos();
-            for (int i = 0; i < 4; ++i) {
-                // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-                String text = textFields[i].getText();
-                MutableText literalText = Text.literal(text.replaceAll("&", "§"));
-                String ColorName = colorFields[i].getText();
-                if (ColorName == null || ColorName == "")
-                    ColorName = "black";
-                TextColor textColor = TextColor.parse(ColorName);
-                String cmd = commandField[i].getText();
-                if (cmd != "") {
-                    // client.player.sendCommand(scmd);
-                    ClickEvent clickEvent = new ClickEvent(Action.RUN_COMMAND, cmd);
-                    literalText
-                            .setStyle(literalText.getStyle().withColor(textColor).withClickEvent(
-                                    clickEvent));
-                } else {
-                    literalText.setStyle(literalText.getStyle().withColor(textColor));
-                }
-                sign.setTextOnRow(i, literalText); // 设置告示牌方块实体的文本内容
-            }
-
-            sign.markDirty(); // 标记告示牌方块实体为脏数据，以便同步到服务器端
+            
 
             PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
             buf.writeBlockPos(pos);

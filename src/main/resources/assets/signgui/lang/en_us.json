@@ -1,0 +1,12 @@
+{
+    "gui.wifi.signgui.title": "Sign Editor",
+    "gui.wifi.signgui.signtext":"Line%s: Text & Color",
+    "gui.wifi.signgui.signcmd":"Line%s: Command",
+    "category.signeditorgui":"Sign Editor GUI",
+    "key.signeditorgui.open_gui":"Open GUI",
+    "msg.signgui.not_a_sign":"This is not a sign",
+    "msg.signgui.not_a_block":"This is not a block",
+    "msg.signgui.not_a_op":"You have not Permission to do this",
+    "msg.signgui.success":"Modify the sign successfully.",
+    "msg.signgui.unexpected":"Unexpected Exception: %s"
+}

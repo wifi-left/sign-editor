@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "signeditgui",
+  "version": "${version}",
+
+  "name": "Minecraft-Sign-Gui",
+  "description": "Minecraft Sign Editor (GUI)",
+  "authors": [
+    "wifi_left"
+  ],
+  "contact": {
+    "homepage": "https://github.com/wifi-left",
+    "sources": "https://github.com/wifi-left"
+  },
+
+  "license": "CC0-1.0",
+  "icon": "assets/signgui/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.wifi.signgui.signgui"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.6",
+    "fabric": "*",
+    "minecraft": "~1.19",
+    "java": ">=17"
+  }
+}

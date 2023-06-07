@@ -1,0 +1,12 @@
+{
+    "gui.wifi.signgui.title": "告示牌编辑器",
+    "gui.wifi.signgui.signtext":"第%s行: 文本 & 颜色",
+    "gui.wifi.signgui.signcmd":"第%s行: 命令",
+    "category.signeditorgui":"告示牌编辑器",
+    "key.signeditorgui.open_gui":"打开编辑器",
+    "msg.signgui.not_a_sign":"这不是一个牌子",
+    "msg.signgui.not_a_block":"这不是一个方块",
+    "msg.signgui.not_a_op":"你没有足够的权限来做这件事",
+    "msg.signgui.success":"成功修改了告示牌",
+    "msg.signgui.unexpected":"未知的错误: %s"
+}

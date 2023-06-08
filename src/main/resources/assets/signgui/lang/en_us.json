@@ -1,5 +1,8 @@
 {
-    "gui.wifi.signgui.title": "Sign Editor",
+    "gui.wifi.signgui.title": "Sign Editor: %s",
+    "gui.wifi.signgui.front": "Front",
+    "gui.wifi.signgui.back": "Back",
+    "key.signeditorgui.change_side":"Change side: front/back",
     "gui.wifi.signgui.signtext":"Line%s: Text & Color",
     "gui.wifi.signgui.signcmd":"Line%s: Command",
     "category.signeditorgui":"Sign Editor GUI",
@@ -8,5 +11,6 @@
     "msg.signgui.not_a_block":"This is not a block",
     "msg.signgui.not_a_op":"You have not Permission to do this",
     "msg.signgui.success":"Modify the sign successfully.",
-    "msg.signgui.unexpected":"Unexpected Exception: %s"
+    "msg.signgui.unexpected":"Unexpected Exception: %s",
+    "msg.signgui.changefacing":"Change side: %s"
 }

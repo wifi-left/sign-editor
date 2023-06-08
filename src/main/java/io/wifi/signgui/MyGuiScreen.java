@@ -8,8 +8,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gui.widget.TextWidget;
-import net.minecraft.client.gui.widget.AbstractTextWidget;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
@@ -35,7 +33,8 @@ public class MyGuiScreen extends Screen {
     private final SignBlockEntity sign;
 
     public MyGuiScreen(SignBlockEntity sign) {
-        super(Text.translatable("gui.wifi.signgui.title")); // 设置GUI的标题
+        super(Text.translatable("gui.wifi.signgui.title",
+                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back"))));
         this.sign = sign; // 保存告示牌方块实体对象
     }
 
@@ -44,11 +43,11 @@ public class MyGuiScreen extends Screen {
         super.init();
         // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
-        SignText signText = sign.getText(signguiMain.textIsFront);
+        SignText signText = sign.getText(signgui.textIsFront);
         for (int i = 0; i < 4; ++i) {
             // 获取告示牌的文本内容
             MutableText line = (MutableText) signText.getMessage(i, false);
-            String text = line.getString().replaceAll("§", "&");
+            String text = line.getString().replaceAll("&", "＆").replaceAll("§", "&");
             String command = "";
 
             Style textStyle = line.getStyle();
@@ -117,7 +116,7 @@ public class MyGuiScreen extends Screen {
             buf.writeBlockPos(pos);
             for (int i = 0; i < 4; ++i) {
                 // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-                String text = textFields[i].getText().replaceAll("&", "§");
+                String text = textFields[i].getText().replaceAll("&&","＆").replaceAll("&", "§").replaceAll("＆", "&");
                 String ColorName = colorFields[i].getText();
                 if (ColorName == null || ColorName == "")
                     ColorName = "black";
@@ -126,6 +125,7 @@ public class MyGuiScreen extends Screen {
                 buf.writeString(ColorName);
                 buf.writeString(cmd);
             }
+            buf.writeBoolean(signgui.textIsFront);
             ClientPlayNetworking.send(signguiMain.UPDATE_SIGN_PACKET_ID, buf);
             // 关闭 GUI & 修改文本
             this.close();
@@ -150,23 +150,6 @@ public class MyGuiScreen extends Screen {
     @Override
     public void removed() {
         super.removed();
-        // this.client.keyboard.setRepeatEvents(false); // 取消键盘重复事件
-
-        // // 遍历告示牌的每一行文本
-        // for (int i = 0; i < 4; ++i) {
-        // // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-        // String text = textFields[i].getText();
-        // Text literalText = (Text) Text.(text.replace("&", "§"));
-        // Formatting formatting = literalText.getStyle().getColor();
-        // TextColor textColor = formatting == null ? null :
-        // TextColor.fromRgb(formatting.getColorValue());
-        // literalText.setStyle(literalText.getStyle().withColor(textColor));
-        // sign.setTextOnRow(i, literalText); // 设置告示牌方块实体的文本内容
-        // }
-
-        // // 获取文本框中输入的内容，并设置告示牌方块实体的命令内容（如果有的话）
-
-        // sign.markDirty(); // 标记告示牌方块实体为脏数据，以便同步到服务器端
     }
 
     private void drawCenteredTextWithShadow(DrawContext matrices, TextRenderer textRenderer, Text text, int x, int y,
@@ -180,7 +163,7 @@ public class MyGuiScreen extends Screen {
         // this.dra(this.title, this.width / 2, 20, 0xFFFFFFFF, false, , null, null,
         // 0x00FFFFFF, 0x00FFFFFF);
 
-        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2 - 30, 20, 0xffffff, true); // 渲染标题0xAARRGGBB
+        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2 - 40, 20, 0xffffff, true); // 渲染标题0xAARRGGBB
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
             drawCenteredTextWithShadow(matrices, this.textRenderer,

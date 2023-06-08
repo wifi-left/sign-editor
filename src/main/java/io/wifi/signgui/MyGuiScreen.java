@@ -1,19 +1,21 @@
 package io.wifi.signgui;
 
-
 import io.netty.buffer.Unpooled;
 import net.minecraft.block.entity.SignBlockEntity;
+import net.minecraft.block.entity.SignText;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.gui.widget.TextWidget;
+import net.minecraft.client.gui.widget.AbstractTextWidget;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
-import net.minecraft.text.ClickEvent.Action;
 import net.minecraft.util.math.BlockPos;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
@@ -23,6 +25,7 @@ public class MyGuiScreen extends Screen {
     private final TextFieldWidget[] textFields = new TextFieldWidget[4];
     private final TextFieldWidget[] colorFields = new TextFieldWidget[4];
     private final TextFieldWidget[] commandField = new TextFieldWidget[4];
+
     // 创建一个文本框，用来编辑告示牌绑定的命令
     // 创建一个告示牌方块实体对象，用来获取和设置告示牌的数据
 
@@ -41,9 +44,10 @@ public class MyGuiScreen extends Screen {
         super.init();
         // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
+        SignText signText = sign.getText(signguiMain.textIsFront);
         for (int i = 0; i < 4; ++i) {
             // 获取告示牌的文本内容
-            MutableText line = (MutableText) sign.getTextOnRow(i, false);
+            MutableText line = (MutableText) signText.getMessage(i, false);
             String text = line.getString().replaceAll("§", "&");
             String command = "";
 
@@ -99,16 +103,15 @@ public class MyGuiScreen extends Screen {
             this.commandField[i] = commandField;
             this.colorFields[i] = colorField;
 
-            this.addDrawableChild(this.colorFields[i]); // 添加文本框对象到GUI中
             this.addDrawableChild(this.textFields[i]); // 添加文本框对象到GUI中
+            this.addDrawableChild(this.colorFields[i]); // 添加文本框对象到GUI中
             this.addDrawableChild(this.commandField[i]); // 添加文本框对象到GUI中
 
         }
-        
+
         confirmButton = ButtonWidget.builder(Text.translatable("gui.ok"), button -> {
             // 确认按钮的点击事件，发送数据包给服务器，更新告示牌的文本和命令
             BlockPos pos = sign.getPos();
-            
 
             PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
             buf.writeBlockPos(pos);
@@ -123,7 +126,7 @@ public class MyGuiScreen extends Screen {
                 buf.writeString(ColorName);
                 buf.writeString(cmd);
             }
-            ClientPlayNetworking.send(signgui.UPDATE_SIGN_PACKET_ID, buf);
+            ClientPlayNetworking.send(signguiMain.UPDATE_SIGN_PACKET_ID, buf);
             // 关闭 GUI & 修改文本
             this.close();
         }).position(this.width / 2 - 104, 48 + 4 * 48).size(100, 20).build();
@@ -133,9 +136,10 @@ public class MyGuiScreen extends Screen {
         {
             // 取消按钮的点击事件，关闭 GUI
             this.close();
-        }).position(this.width / 2 + 4, 4 * 48 + 48).size(100,20).build();
+        }).position(this.width / 2 + 4, 4 * 48 + 48).size(100, 20).build();
 
         this.addDrawableChild(confirmButton); // 添加确认按钮对象到GUI中
+        // this.addDrawableChild(titletip); // 添加取消按钮对象到GUI中
         this.addDrawableChild(cancelButton); // 添加取消按钮对象到GUI中
         // 创建一个文本框对象，并设置其位置、大小、最大长度等属性
 
@@ -165,19 +169,26 @@ public class MyGuiScreen extends Screen {
         // sign.markDirty(); // 标记告示牌方块实体为脏数据，以便同步到服务器端
     }
 
-    @Override
-    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-        this.renderBackground(matrices); // 渲染背景
+    private void drawCenteredTextWithShadow(DrawContext matrices, TextRenderer textRenderer, Text text, int x, int y,
+            int color, boolean shadow) {
+        matrices.drawText(textRenderer, text, x, y, color, shadow);
+    }
 
-        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2, 20, 16777215); // 渲染标题
+    @Override
+    public void render(DrawContext matrices, int mouseX, int mouseY, float delta) {
+        this.renderBackground(matrices); // 渲染背景
+        // this.dra(this.title, this.width / 2, 20, 0xFFFFFFFF, false, , null, null,
+        // 0x00FFFFFF, 0x00FFFFFF);
+
+        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2 - 30, 20, 0xffffff, true); // 渲染标题0xAARRGGBB
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
             drawCenteredTextWithShadow(matrices, this.textRenderer,
-                    Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 170, 52 + i * 48,
-                    16777215); // 渲染文本标签
+                    Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 220, 52 + i * 48,
+                    0xffffff, true); // 渲染文本标签
             drawCenteredTextWithShadow(matrices, this.textRenderer,
-                    Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 170, 72 + i * 48,
-                    16777215); // 渲染命令标签
+                    Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 220, 72 + i * 48,
+                    0xffffff, true); // 渲染命令标签
 
         }
 

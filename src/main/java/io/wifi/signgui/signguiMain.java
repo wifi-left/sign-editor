@@ -1,16 +1,12 @@
 package io.wifi.signgui;
 // MyMod.java
 
-import org.lwjgl.glfw.GLFW;
-
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
+import net.minecraft.block.entity.SignText;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
@@ -20,14 +16,13 @@ import net.minecraft.text.TextColor;
 import net.minecraft.text.ClickEvent.Action;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ServerWorldAccess;
 
 public class signguiMain implements ModInitializer {
     // 定义一个数据包标识符，用于更新告示牌的文本和命令
     public static final Identifier UPDATE_SIGN_PACKET_ID = new Identifier("signeditorgui", "update_sign");
+    public static final boolean textIsFront = true;
 
     @Override
     public void onInitialize() {
@@ -58,6 +53,7 @@ public class signguiMain implements ModInitializer {
                         // 检查方块是否是告示牌
                         if (be instanceof SignBlockEntity) {
                             SignBlockEntity sign = (SignBlockEntity) be;
+                            SignText signText = sign.getText(signguiMain.textIsFront);
                             for (int i = 0; i < 4; ++i) {
                                 // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
                                 String text = textCache[i];
@@ -76,21 +72,28 @@ public class signguiMain implements ModInitializer {
                                 } else {
                                     literalText.setStyle(literalText.getStyle().withColor(textColor));
                                 }
-                                sign.setTextOnRow(i, literalText); // 设置告示牌方块实体的文本内容
+                                // signText.withMessage
+                                signText = signText.withMessage(i, literalText); // 设置告示牌方块实体的文本内容
                             }
+                            boolean res = sign.setText(signText, signguiMain.textIsFront);
+                            // System.out.print("Modify result: "+res);
                             sign.markDirty();
                             // player.openEditSignScreen(sign);
-                            player.networkHandler.sendPacket(new BlockUpdateS2CPacket(world, sign.getPos()));
+                            player.networkHandler.sendPacket(sign.toUpdatePacket());
                             // world.updateNeighbors(signPos, signState.getBlock());
                             // world.syncWorldEvent(client, 0, signPos, 0);
                             // world.getChunk(signPos).markBlockForPostProcessing(signPos);
                             style.withColor((TextColor.fromFormatting(Formatting.GREEN)));
-                            client.sendMessage(Text.translatable("msg.signgui.success").setStyle(style));
+                            if (res) {
+                                client.sendMessage(Text.translatable("msg.signgui.success").setStyle(style));
+                            } else {
+                                client.sendMessage(
+                                        Text.translatable("msg.signgui.unexpected", "Cannot modify the sign block").setStyle(style));
+                            }
                         } else {
-                            String out = (client == null ? "NULL" : client.getWorld()) + ":" + signPos.getX() + " "
-                                    + signPos.getY() + " " + signPos.getZ();
-                            style.withColor(TextColor.fromFormatting(Formatting.RED));
-                            client.sendMessage(Text.translatable("msg.signgui.unexpected", out).setStyle(style));
+                            // String out = (client == null ? "NULL" : client.()) + ":" + signPos.getX() + "
+                            // "
+                            // + signPos.getY() + " " + signPos.getZ();
                             return;
                         }
                     });

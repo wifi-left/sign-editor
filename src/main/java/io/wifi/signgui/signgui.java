@@ -4,34 +4,23 @@ package io.wifi.signgui;
 import org.lwjgl.glfw.GLFW;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
-import net.minecraft.text.ClickEvent.Action;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ServerWorldAccess;
 
 public class signgui implements ClientModInitializer {
     // 定义一个键绑定
     private static final KeyBinding keyBinding = new KeyBinding("key.signeditorgui.open_gui", InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_V, "category.signeditorgui");
     // 定义一个数据包标识符，用于更新告示牌的文本和命令
-    public static final Identifier UPDATE_SIGN_PACKET_ID = new Identifier("signeditorgui", "update_sign");
 
     @Override
     public void onInitializeClient() {

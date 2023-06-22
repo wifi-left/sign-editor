@@ -60,8 +60,10 @@ public class signguiMain implements ModInitializer {
                                 String ColorName = colorCache[i];
                                 if (ColorName == null || ColorName == "")
                                     ColorName = "black";
-                                TextColor textColor = TextColor.fromFormatting(Formatting.byName(ColorName));
+                                // TextColor textColor = TextColor.fromFormatting(Formatting.byName(ColorName));                                
+                                TextColor textColor = TextColor.parse((ColorName));
 
+                                // TextColor.
                                 String cmd = cmdCache[i];
                                 if (cmd != "") {
                                     ClickEvent clickEvent = new ClickEvent(Action.RUN_COMMAND, cmd);

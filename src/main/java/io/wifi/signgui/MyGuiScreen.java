@@ -23,24 +23,70 @@ public class MyGuiScreen extends Screen {
     private final TextFieldWidget[] textFields = new TextFieldWidget[4];
     private final TextFieldWidget[] colorFields = new TextFieldWidget[4];
     private final TextFieldWidget[] commandField = new TextFieldWidget[4];
+    private Text titleDisplayer = null;
+    private int FiledHeight = 16;
+    private int LineHeight = 40;
 
+    private int titleTop = 10;
+    private int tipTop = 24;
+
+    private int FiledStartPos = 44;
+    private int TextTipStartPos = 48;
+    private int CommandTipStartPos = 68;
     // 创建一个文本框，用来编辑告示牌绑定的命令
     // 创建一个告示牌方块实体对象，用来获取和设置告示牌的数据
 
     private ButtonWidget confirmButton;
     private ButtonWidget cancelButton;
+    private ButtonWidget changeSideButton;
     // 创建两个按钮
     private final SignBlockEntity sign;
+
+    private void calcPositions() {
+        // 800 x 720
+        /*
+         * TextFieldWidget textField = new TextFieldWidget(this.textRenderer, this.width
+         * / 2 - 80, 44 + i * 40, 186,
+         * 16, Text.translatable("gui.wifi.signgui.signtext"));
+         * TextFieldWidget colorField = new TextFieldWidget(this.textRenderer,
+         * this.width / 2 + 110, 44 + i * 40, 50,
+         * 16, Text.translatable("gui.wifi.signgui.signtext"));
+         * TextFieldWidget commandField = new TextFieldWidget(this.textRenderer,
+         * this.width / 2 - 80, 64 + i * 40,
+         * 240, 16, Text.translatable("gui.wifi.signgui.signcmd"));
+         */
+        // System.out.print(this.width + "x" + this.height);
+        if (this.height <= 380) {
+            TextTipStartPos = 48;
+            CommandTipStartPos = 68;
+            titleTop = 10;
+            tipTop = 24;
+            FiledHeight = 16;
+            LineHeight = 40;
+            FiledStartPos = 44;
+        } else {
+            titleTop = 20;
+            tipTop = 36;
+            TextTipStartPos = 74;
+            FiledHeight = 20;
+            LineHeight = 48;
+            FiledStartPos = 68;
+            CommandTipStartPos = 98;
+        }
+    }
 
     public MyGuiScreen(SignBlockEntity sign) {
         super(Text.translatable("gui.wifi.signgui.title",
                 Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back"))));
         this.sign = sign; // 保存告示牌方块实体对象
+        this.titleDisplayer = Text.translatable("gui.wifi.signgui.title",
+                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back")));
     }
 
     @Override
     protected void init() {
         super.init();
+        calcPositions();
         // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
         SignText signText = sign.getText(signgui.textIsFront);
@@ -83,16 +129,20 @@ public class MyGuiScreen extends Screen {
                 }
             }
             // 创建一个文本框对象，并设置其位置、大小、最大长度等属性
-            TextFieldWidget textField = new TextFieldWidget(this.textRenderer, this.width / 2 - 100, 48 + i * 48, 250,
-                    20, Text.translatable("gui.wifi.signgui.signtext"));
-            TextFieldWidget colorField = new TextFieldWidget(this.textRenderer, this.width / 2 + 150, 48 + i * 48, 50,
-                    20, Text.translatable("gui.wifi.signgui.signtext"));
-            TextFieldWidget commandField = new TextFieldWidget(this.textRenderer, this.width / 2 - 100, 68 + i * 48,
-                    300, 20, Text.translatable("gui.wifi.signgui.signcmd"));
+            TextFieldWidget textField = new TextFieldWidget(this.textRenderer, this.width / 2 - 72,
+                    FiledStartPos + i * LineHeight, 186,
+                    FiledHeight, Text.translatable("gui.wifi.signgui.signtext"));
+            TextFieldWidget colorField = new TextFieldWidget(this.textRenderer, this.width / 2 + 118,
+                    FiledStartPos + i * LineHeight, 50,
+                    FiledHeight, Text.translatable("gui.wifi.signgui.signtext"));
+            TextFieldWidget commandField = new TextFieldWidget(this.textRenderer, this.width / 2 - 72,
+                    FiledStartPos + LineHeight / 2 + i * LineHeight,
+                    240, FiledHeight, Text.translatable("gui.wifi.signgui.signcmd"));
+            // commandField.setChangedListener(this::onCommandChanged);
             textField.setMaxLength(384);
             textField.setText(text);
             textField.setEditableColor(0xFFFFFF);
-            commandField.setMaxLength(500);
+            commandField.setMaxLength(32500);
             commandField.setText(command);
             commandField.setEditableColor(0xFFFFFF);
             colorField.setMaxLength(50);
@@ -116,7 +166,7 @@ public class MyGuiScreen extends Screen {
             buf.writeBlockPos(pos);
             for (int i = 0; i < 4; ++i) {
                 // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-                String text = textFields[i].getText().replaceAll("&&","＆").replaceAll("&", "§").replaceAll("＆", "&");
+                String text = textFields[i].getText().replaceAll("&&", "＆").replaceAll("&", "§").replaceAll("＆", "&");
                 String ColorName = colorFields[i].getText();
                 if (ColorName == null || ColorName == "")
                     ColorName = "black";
@@ -129,20 +179,24 @@ public class MyGuiScreen extends Screen {
             ClientPlayNetworking.send(signguiMain.UPDATE_SIGN_PACKET_ID, buf);
             // 关闭 GUI & 修改文本
             this.close();
-        }).position(this.width / 2 - 104, 48 + 4 * 48).size(100, 20).build();
+        }).position(this.width / 2 - 50, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
 
-        cancelButton = ButtonWidget.builder(Text.translatable("gui.cancel"), button ->
-
-        {
+        cancelButton = ButtonWidget.builder(Text.translatable("gui.cancel"), button -> {
             // 取消按钮的点击事件，关闭 GUI
             this.close();
-        }).position(this.width / 2 + 4, 4 * 48 + 48).size(100, 20).build();
-
+        }).position(this.width / 2 + 54, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
+        changeSideButton = ButtonWidget.builder(Text.translatable("gui.wifi.signgui.button.changeside",
+                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back"))), button -> {
+            // 取消按钮的点击事件，关闭 GUI
+            signgui.textIsFront = !signgui.textIsFront;
+            this.titleDisplayer = Text.translatable("gui.wifi.signgui.title",
+                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back")));
+            this.changeSideButton.setMessage(Text.translatable("gui.wifi.signgui.button.changeside",
+                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back"))));
+        }).position(this.width / 2 - 154, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         this.addDrawableChild(confirmButton); // 添加确认按钮对象到GUI中
-        // this.addDrawableChild(titletip); // 添加取消按钮对象到GUI中
         this.addDrawableChild(cancelButton); // 添加取消按钮对象到GUI中
-        // 创建一个文本框对象，并设置其位置、大小、最大长度等属性
-
+        this.addDrawableChild(changeSideButton); // 添加切换方向按钮对象到GUI中
         // this.addSelectableChild(commandField); // 添加文本框对象到GUI中
         this.setInitialFocus(this.textFields[0]); // 设置初始焦点为第一个文本框
     }
@@ -163,18 +217,22 @@ public class MyGuiScreen extends Screen {
         // this.dra(this.title, this.width / 2, 20, 0xFFFFFFFF, false, , null, null,
         // 0x00FFFFFF, 0x00FFFFFF);
 
-        drawCenteredTextWithShadow(matrices, this.textRenderer, this.title, this.width / 2 - 40, 20, 0xffffff, true); // 渲染标题0xAARRGGBB
+        drawCenteredTextWithShadow(matrices, this.textRenderer, this.titleDisplayer, this.width / 2 - 180, titleTop, 0xffffff,
+                true); // 渲染标题0xAARRGGBB
+        drawCenteredTextWithShadow(matrices, this.textRenderer, Text.translatable("gui.wifi.signgui.tip"),
+                this.width / 2 - 180, tipTop, 0xffffff, true);
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
             drawCenteredTextWithShadow(matrices, this.textRenderer,
-                    Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 220, 52 + i * 48,
+                    Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 180,
+                    TextTipStartPos + i * LineHeight,
                     0xffffff, true); // 渲染文本标签
             drawCenteredTextWithShadow(matrices, this.textRenderer,
-                    Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 220, 72 + i * 48,
+                    Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 180,
+                    CommandTipStartPos + i * LineHeight,
                     0xffffff, true); // 渲染命令标签
 
         }
-
         super.render(matrices, mouseX, mouseY, delta); // 渲染其他元素
 
     }

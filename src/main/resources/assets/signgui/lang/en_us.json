@@ -1,7 +1,9 @@
 {
-    "gui.wifi.signgui.title": "Sign Editor: %s",
+    "gui.wifi.signgui.title": "\u00a7b\u00a7lSign Editor\u00a7r: %s",
+    "gui.wifi.signgui.tip": "\u00a7eUse '&&' or '＆' for '&' and '&' for \u00a7dSection Sign (Formatting)",
     "gui.wifi.signgui.front": "Front",
     "gui.wifi.signgui.back": "Back",
+    "gui.wifi.signgui.button.changeside": "Change to: %s",
     "key.signeditorgui.change_side":"Change side: front/back",
     "gui.wifi.signgui.signtext":"Line%s: Text & Color",
     "gui.wifi.signgui.signcmd":"Line%s: Command",

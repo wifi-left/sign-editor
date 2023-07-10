@@ -1,6 +1,6 @@
 {
     "gui.wifi.signgui.title": "\u00a7b\u00a7l告示牌编辑器\u00a7r: %s",
-    "gui.wifi.signgui.tip": "\u00a7e使用'&&'或者'＆'来输入'&'，用'&'输入\u00a7dMC颜色字符 (格式化字符)",
+    "gui.wifi.signgui.tip": "\u00a7e使用'&&'或者'＆'来输入'&'，用'&'输入\u00a7dMC颜色字符 (格式化字符)。\u00a7e\u00a7l注意: \u00a7f修改服务器上告示牌需要服务器也安装此模组。",
     "gui.wifi.signgui.front": "正面",
     "gui.wifi.signgui.back": "反面",
     "gui.wifi.signgui.button.changeside": "切换到: %s",
@@ -11,7 +11,7 @@
     "key.signeditorgui.open_gui":"打开编辑器",
     "msg.signgui.not_a_sign":"这不是一个牌子",
     "msg.signgui.not_a_block":"这不是一个方块",
-    "msg.signgui.not_a_op":"你没有足够的权限来做这件事",
+    "msg.signgui.not_op":"你没有足够的权限来做这件事",
     "msg.signgui.success":"成功修改了告示牌",
     "msg.signgui.unexpected":"未知的错误: %s",
     "msg.signgui.changefacing":"修改方向为：%s"

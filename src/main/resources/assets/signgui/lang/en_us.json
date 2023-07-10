@@ -1,6 +1,6 @@
 {
     "gui.wifi.signgui.title": "\u00a7b\u00a7lSign Editor\u00a7r: %s",
-    "gui.wifi.signgui.tip": "\u00a7eUse '&&' or '＆' for '&' and '&' for \u00a7dSection Sign (Formatting)",
+    "gui.wifi.signgui.tip": "\u00a7eUse '&&' or '＆' for '&' and '&' for \u00a7dSection Sign (Formatting). \u00a7e\u00a7lWARN: \u00a7fYou have to install this mod on your server to modify the sign on the server.",
     "gui.wifi.signgui.front": "Front",
     "gui.wifi.signgui.back": "Back",
     "gui.wifi.signgui.button.changeside": "Change to: %s",
@@ -11,7 +11,7 @@
     "key.signeditorgui.open_gui":"Open GUI",
     "msg.signgui.not_a_sign":"This is not a sign",
     "msg.signgui.not_a_block":"This is not a block",
-    "msg.signgui.not_a_op":"You have not Permission to do this",
+    "msg.signgui.not_op":"You have not Permission to do this",
     "msg.signgui.success":"Modify the sign successfully.",
     "msg.signgui.unexpected":"Unexpected Exception: %s",
     "msg.signgui.changefacing":"Change side: %s"

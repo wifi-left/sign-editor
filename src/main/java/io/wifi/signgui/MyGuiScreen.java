@@ -186,7 +186,7 @@ public class MyGuiScreen extends Screen {
             this.close();
         }).position(this.width / 2 + 54, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         changeSideButton = ButtonWidget.builder(Text.translatable("gui.wifi.signgui.button.changeside",
-                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back"))), button -> {
+                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "back" : "front"))), button -> {
             // 取消按钮的点击事件，关闭 GUI
             signgui.textIsFront = !signgui.textIsFront;
             this.titleDisplayer = Text.translatable("gui.wifi.signgui.title",

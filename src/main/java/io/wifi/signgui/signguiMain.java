@@ -31,6 +31,7 @@ public class signguiMain implements ModInitializer {
                     if (!client.hasPermissionLevel(2)) {
                         // style.withColor((TextColor.fromFormatting(Formatting.RED)));
                         client.sendMessage(Text.translatable("msg.signgui.not_op").formatted(Formatting.RED));
+                        
                         return;
                     }
                     PacketByteBuf bufCache = packetByteBuf;

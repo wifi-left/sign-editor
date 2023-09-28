@@ -14,5 +14,6 @@
     "msg.signgui.not_op":"You have not Permission to do this",
     "msg.signgui.success":"Modify the sign successfully.",
     "msg.signgui.unexpected":"Unexpected Exception: %s",
-    "msg.signgui.changefacing":"Change side: %s"
+    "msg.signgui.changefacing":"Change side: %s",
+    "gui.wifi.signgui.button.reload":"Reload"
 }

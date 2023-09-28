@@ -14,5 +14,6 @@
     "msg.signgui.not_op":"你没有足够的权限来做这件事",
     "msg.signgui.success":"成功修改了告示牌",
     "msg.signgui.unexpected":"未知的错误: %s",
-    "msg.signgui.changefacing":"修改方向为：%s"
+    "msg.signgui.changefacing":"修改方向为：%s",
+    "gui.wifi.signgui.button.reload":"重新加载"
 }

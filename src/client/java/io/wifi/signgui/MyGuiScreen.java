@@ -79,10 +79,10 @@ public class MyGuiScreen extends Screen {
 
     public MyGuiScreen(SignBlockEntity sign) {
         super(Text.translatable("gui.wifi.signgui.title",
-                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back"))));
+                Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back"))));
         this.sign = sign; // 保存告示牌方块实体对象
         this.titleDisplayer = Text.translatable("gui.wifi.signgui.title",
-                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back")));
+                Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back")));
     }
 
     @Override
@@ -91,7 +91,7 @@ public class MyGuiScreen extends Screen {
         calcPositions();
         // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
-        SignText signText = sign.getText(signgui.textIsFront);
+        SignText signText = sign.getText(signguiClient.textIsFront);
         for (int i = 0; i < 4; ++i) {
             // 获取告示牌的文本内容
             MutableText line = (MutableText) signText.getMessage(i, false);
@@ -178,8 +178,8 @@ public class MyGuiScreen extends Screen {
                 buf.writeString(ColorName);
                 buf.writeString(cmd);
             }
-            buf.writeBoolean(signgui.textIsFront);
-            ClientPlayNetworking.send(signguiMain.UPDATE_SIGN_PACKET_ID, buf);
+            buf.writeBoolean(signguiClient.textIsFront);
+            ClientPlayNetworking.send(new signEditPayload(buf));
             // 关闭 GUI & 修改文本
             this.close();
         }).position(this.width / 2 + 4, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
@@ -189,17 +189,17 @@ public class MyGuiScreen extends Screen {
             this.close();
         }).position(this.width / 2 + 108, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         changeSideButton = ButtonWidget.builder(Text.translatable("gui.wifi.signgui.button.changeside",
-                Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "back" : "front"))), button -> {
+                Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "back" : "front"))), button -> {
                     // 取消按钮的点击事件，关闭 GUI
-                    signgui.textIsFront = !signgui.textIsFront;
+                    signguiClient.textIsFront = !signguiClient.textIsFront;
                     this.titleDisplayer = Text.translatable("gui.wifi.signgui.title",
-                            Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "front" : "back")));
+                            Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back")));
                     this.changeSideButton.setMessage(Text.translatable("gui.wifi.signgui.button.changeside",
-                            Text.translatable("gui.wifi.signgui." + (signgui.textIsFront ? "back" : "front"))));
+                            Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "back" : "front"))));
                 }).position(this.width / 2 - 208, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         reloadButton = ButtonWidget.builder(Text.translatable("gui.wifi.signgui.button.reload"), button -> {
             // 重载文本
-            SignText lsignText = sign.getText(signgui.textIsFront);
+            SignText lsignText = sign.getText(signguiClient.textIsFront);
             for (int i = 0; i < 4; ++i) {
                 // 获取告示牌的文本内容
                 MutableText line = (MutableText) lsignText.getMessage(i, false);

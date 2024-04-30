@@ -15,5 +15,7 @@
     "msg.signgui.success":"Modify the sign successfully.",
     "msg.signgui.unexpected":"Unexpected Exception: %s",
     "msg.signgui.changefacing":"Change side: %s",
-    "gui.wifi.signgui.button.reload":"Reload"
+    "gui.wifi.signgui.button.reload":"Reload",
+    "msg.signgui.unavailable":"Warning: This module is not installed on the server, so the module can only view the billboard and cannot be modified.",
+    "msg.signgui.notsameversion":"Note: The communication protocol version of the mod installed by the server is %s, while yours is %s, which may cause some problems."
 }

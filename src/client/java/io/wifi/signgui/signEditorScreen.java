@@ -17,7 +17,7 @@ import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.math.BlockPos;
 
-public class MyGuiScreen extends Screen {
+public class signEditorScreen extends Screen {
 
     // 创建一个文本框数组，用来编辑告示牌的每一行文本
     private final TextFieldWidget[] textFields = new TextFieldWidget[4];
@@ -77,7 +77,7 @@ public class MyGuiScreen extends Screen {
         }
     }
 
-    public MyGuiScreen(SignBlockEntity sign) {
+    public signEditorScreen(SignBlockEntity sign) {
         super(Text.translatable("gui.wifi.signgui.title",
                 Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back"))));
         this.sign = sign; // 保存告示牌方块实体对象
@@ -264,29 +264,30 @@ public class MyGuiScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext matrices, int mouseX, int mouseY, float delta) {
-        this.renderBackground(matrices, mouseY, mouseY, delta); // 渲染背景
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        this.renderBackground(context, mouseX, mouseY, delta); // 渲染背景
         // this.dra(this.title, this.width / 2, 20, 0xFFFFFFFF, false, , null, null,
         // 0x00FFFFFF, 0x00FFFFFF);
+        super.render(context, mouseX, mouseY, delta);
+        // 先渲染其他元素
 
-        drawCenteredTextWithShadow(matrices, this.textRenderer, this.titleDisplayer, this.width / 2 - 180, titleTop,
+        drawCenteredTextWithShadow(context, this.textRenderer, this.titleDisplayer, this.width / 2 - 180, titleTop,
                 0xffffff,
                 true); // 渲染标题0xAARRGGBB
-        drawCenteredTextWithShadow(matrices, this.textRenderer, Text.translatable("gui.wifi.signgui.tip"),
+        drawCenteredTextWithShadow(context, this.textRenderer, Text.translatable("gui.wifi.signgui.tip"),
                 this.width / 2 - 180, tipTop, 0xffffff, true);
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
-            drawCenteredTextWithShadow(matrices, this.textRenderer,
+            drawCenteredTextWithShadow(context, this.textRenderer,
                     Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 180,
                     TextTipStartPos + i * LineHeight,
                     0xffffff, true); // 渲染文本标签
-            drawCenteredTextWithShadow(matrices, this.textRenderer,
+            drawCenteredTextWithShadow(context, this.textRenderer,
                     Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 180,
                     CommandTipStartPos + i * LineHeight,
                     0xffffff, true); // 渲染命令标签
 
         }
-        super.render(matrices, mouseX, mouseY, delta); // 渲染其他元素
 
     }
 

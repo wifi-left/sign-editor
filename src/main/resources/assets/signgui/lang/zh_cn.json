@@ -15,5 +15,7 @@
     "msg.signgui.success":"成功修改了告示牌",
     "msg.signgui.unexpected":"未知的错误: %s",
     "msg.signgui.changefacing":"修改方向为：%s",
-    "gui.wifi.signgui.button.reload":"重新加载"
+    "gui.wifi.signgui.button.reload":"重新加载",
+    "msg.signgui.unavailable":"注意：服务器未安装本模组，故模组仅可查看告示牌，无法修改。",
+    "msg.signgui.notsameversion":"注意：服务器安装的本模组的通信协议版本为 %s，而您安装的模组的通信协议版本为 %s，这可能会导致一些问题。"
 }

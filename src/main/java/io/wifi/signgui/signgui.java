@@ -1,6 +1,9 @@
 package io.wifi.signgui;
 // MyMod.java
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mojang.serialization.DataResult;
 
 import net.fabricmc.api.ModInitializer;
@@ -17,19 +20,33 @@ import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.text.ClickEvent.Action;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ServerWorldAccess;
 
 public class signgui implements ModInitializer {
-    // 定义一个数据包标识符，用于更新告示牌的文本和命令
-    public static final Identifier UPDATE_SIGN_PACKET_ID = new Identifier("signeditorgui", "update_sign");
+    // 常量
+    public static String helloVersion = "1.0.SNAPSHOT";
+    public static Logger LOGGER = LoggerFactory.getLogger("SignEditor");
 
     @Override
     public void onInitialize() {
         // 注册服务器事件
         PayloadTypeRegistry.playS2C().register(signEditPayload.ID, signEditPayload.CODEC);
-
+        PayloadTypeRegistry.playC2S().register(signEditPayload.ID, signEditPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(signEditablePayload.ID, signEditablePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(signEditablePayload.ID, signEditablePayload.CODEC);
+        // Hello Event
+        ServerPlayNetworking.registerGlobalReceiver(signEditablePayload.ID,
+                (payload, context) -> {
+                    String clientHelloVersion = payload.text;
+                    if (!clientHelloVersion.equals(helloVersion)) {
+                        LOGGER.info(String.format(
+                                "Client logined with SignEditor protocol version %s, while the server is %s.",
+                                clientHelloVersion, helloVersion));
+                    }
+                    ServerPlayNetworking.send(context.player(), new signEditablePayload(helloVersion));
+                });
+        // 告示牌编辑
         ServerPlayNetworking.registerGlobalReceiver(signEditPayload.ID,
                 (payload, context) -> {
                     MinecraftServer server = context.player().getServer();

@@ -56,9 +56,8 @@ public class signguiClient implements ClientModInitializer {
             // 检查键盘是否按下
             while (keyBinding.wasPressed()) {
                 // 判断能否打开GUI
-                if (!isOn) {
-                    client.getServer()
-                            .sendMessage(Text.translatable("msg.signgui.unavailable").formatted(Formatting.YELLOW));
+                if (!signguiClient.isOn) {
+                    client.getMessageHandler().onGameMessage(Text.translatable("msg.signgui.unavailable").formatted(Formatting.YELLOW),false);
                 } else if (!client.player.hasPermissionLevel(2)) {
 
                     client.inGameHud.setOverlayMessage(

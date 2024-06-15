@@ -7,7 +7,7 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.math.BlockPos;
 
 public class signEditPayload implements CustomPayload {
-    public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui:update_sign";
+    public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui.update_sign";
 
     public static final CustomPayload.Id<signEditPayload> ID = CustomPayload.id(UPDATE_SIGN_PACKET_ID);
     public static final PacketCodec<RegistryByteBuf, signEditPayload> CODEC = PacketCodec.of(signEditPayload::write, signEditPayload::new).cast();

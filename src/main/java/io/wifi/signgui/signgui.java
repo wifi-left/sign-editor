@@ -18,7 +18,7 @@ import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
-import net.minecraft.text.ClickEvent.Action;
+import net.minecraft.text.ClickEvent.RunCommand;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ServerWorldAccess;
@@ -97,7 +97,8 @@ public class signgui implements ModInitializer {
                                 // TextColor.
                                 String cmd = cmdCache[i];
                                 if (cmd != "") {
-                                    ClickEvent clickEvent = new ClickEvent(Action.RUN_COMMAND, cmd);
+                                    
+                                    ClickEvent clickEvent = new RunCommand(cmd);
                                     literalText
                                             .setStyle(literalText.getStyle().withColor(textColor).withClickEvent(
                                                     clickEvent));

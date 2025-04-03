@@ -87,5 +87,5 @@ publishing {
 	}
 }
 runClient {
-    args '--username','debug_player'
+    args '--username',"${project.debug_player}"
 }

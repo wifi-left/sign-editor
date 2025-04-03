@@ -15,6 +15,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
+import net.minecraft.text.ClickEvent.Action;
 import net.minecraft.util.math.BlockPos;
 
 public class signEditorScreen extends Screen {
@@ -101,9 +102,12 @@ public class signEditorScreen extends Screen {
             Style textStyle = line.getStyle();
             if (textStyle != null) {
                 ClickEvent clickEvent = textStyle.getClickEvent();
-                if (clickEvent != null) {
-                    command = clickEvent.getValue();
+                if(clickEvent != null){
+                    if (clickEvent.getAction().equals(Action.RUN_COMMAND)) {
+                        command = ((ClickEvent.RunCommand)clickEvent).command();
+                    }
                 }
+                
             }
             String color = "black";
             if (textStyle.isBold()) {
@@ -210,7 +214,8 @@ public class signEditorScreen extends Screen {
                 if (textStyle != null) {
                     ClickEvent clickEvent = textStyle.getClickEvent();
                     if (clickEvent != null) {
-                        command = clickEvent.getValue();
+                        if (clickEvent.getAction().equals(Action.RUN_COMMAND))
+                            command = ((ClickEvent.RunCommand)clickEvent).command();
                     }
                 }
                 String color = "black";

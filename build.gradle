@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.6.11'
+	id 'fabric-loom' version '1.10-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -85,4 +85,7 @@ publishing {
 		// The repositories here will be used for publishing your artifact, not for
 		// retrieving dependencies.
 	}
+}
+runClient {
+    args '--username','debug_player'
 }

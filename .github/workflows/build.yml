@@ -12,10 +12,10 @@ jobs:
       matrix:
         # Use these Java versions
         java: [
-            17    # Latest version
+            21   # Latest version
         ]
         # and run on both Linux and Windows
-        os: [ ubuntu-latest, windows-latest ]
+        os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -34,7 +34,6 @@ jobs:
       - name: Build
         run: ./gradlew build
       - name: Capture build artifacts
-        if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from LTS java on one OS
         uses: actions/upload-artifact@v3
         with:
           name: Artifacts

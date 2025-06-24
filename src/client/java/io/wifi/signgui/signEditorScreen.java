@@ -4,6 +4,7 @@ import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -21,9 +22,9 @@ import net.minecraft.util.math.BlockPos;
 public class signEditorScreen extends Screen {
 
     // 创建一个文本框数组，用来编辑告示牌的每一行文本
-    private final TextFieldWidget[] textFields = new TextFieldWidget[4];
-    private final TextFieldWidget[] colorFields = new TextFieldWidget[4];
-    private final TextFieldWidget[] commandField = new TextFieldWidget[4];
+    private TextFieldWidget[] textFields = new TextFieldWidget[4];
+    private TextFieldWidget[] colorFields = new TextFieldWidget[4];
+    private TextFieldWidget[] commandField = new TextFieldWidget[4];
     private Text titleDisplayer = null;
     private int FiledHeight = 16;
     private int LineHeight = 40;
@@ -46,19 +47,6 @@ public class signEditorScreen extends Screen {
     private final SignBlockEntity sign;
 
     private void calcPositions() {
-        // 800 x 720
-        /*
-         * TextFieldWidget textField = new TextFieldWidget(this.textRenderer, this.width
-         * / 2 - 80, 44 + i * 40, 186,
-         * 16, Text.translatable("gui.wifi.signgui.signtext"));
-         * TextFieldWidget colorField = new TextFieldWidget(this.textRenderer,
-         * this.width / 2 + 110, 44 + i * 40, 50,
-         * 16, Text.translatable("gui.wifi.signgui.signtext"));
-         * TextFieldWidget commandField = new TextFieldWidget(this.textRenderer,
-         * this.width / 2 - 80, 64 + i * 40,
-         * 240, 16, Text.translatable("gui.wifi.signgui.signcmd"));
-         */
-        // System.out.print(this.width + "x" + this.height);
         if (this.height <= 380) {
             TextTipStartPos = 48;
             CommandTipStartPos = 68;
@@ -86,10 +74,53 @@ public class signEditorScreen extends Screen {
                 Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back")));
     }
 
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        for (int i = 0; i < 4; i++) {
+            if (this.commandField[i].isFocused()) {
+                if (super.keyPressed(keyCode, scanCode, modifiers)) {
+                    return true;
+                } else if (keyCode != 257 && keyCode != 335) {
+                    return false;
+                } else {
+                    if (i == 3) {
+                        this.setFocused(textFields[0]);
+                    } else {
+                        this.setFocused(this.textFields[i + 1]);
+                    }
+
+                    return true;
+                }
+            } else if (this.textFields[i].isFocused()) {
+                if (super.keyPressed(keyCode, scanCode, modifiers)) {
+                    return true;
+                } else if (keyCode != 257 && keyCode != 335) {
+                    return false;
+                } else {
+                    this.setFocused(this.colorFields[i]);
+
+                    return true;
+                }
+            } else if (this.colorFields[i].isFocused()) {
+                if (super.keyPressed(keyCode, scanCode, modifiers)) {
+                    return true;
+                } else if (keyCode != 257 && keyCode != 335) {
+                    return false;
+                } else {
+                    this.setFocused(this.commandField[i]);
+                    return true;
+                }
+            }
+
+        }
+        return true;
+    }
+
     @Override
     protected void init() {
         super.init();
+
         calcPositions();
+
         // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
         SignText signText = sign.getText(signguiClient.textIsFront);
@@ -102,12 +133,12 @@ public class signEditorScreen extends Screen {
             Style textStyle = line.getStyle();
             if (textStyle != null) {
                 ClickEvent clickEvent = textStyle.getClickEvent();
-                if(clickEvent != null){
+                if (clickEvent != null) {
                     if (clickEvent.getAction().equals(Action.RUN_COMMAND)) {
-                        command = ((ClickEvent.RunCommand)clickEvent).command();
+                        command = ((ClickEvent.RunCommand) clickEvent).command();
                     }
                 }
-                
+
             }
             String color = "black";
             if (textStyle.isBold()) {
@@ -138,29 +169,31 @@ public class signEditorScreen extends Screen {
             TextFieldWidget textField = new TextFieldWidget(this.textRenderer, this.width / 2 - 72,
                     FiledStartPos + i * LineHeight, 186,
                     FiledHeight, Text.translatable("gui.wifi.signgui.signtext"));
+
             TextFieldWidget colorField = new TextFieldWidget(this.textRenderer, this.width / 2 + 118,
                     FiledStartPos + i * LineHeight, 50,
                     FiledHeight, Text.translatable("gui.wifi.signgui.signtext"));
+
             TextFieldWidget commandField = new TextFieldWidget(this.textRenderer, this.width / 2 - 72,
                     FiledStartPos + LineHeight / 2 + i * LineHeight,
                     240, FiledHeight, Text.translatable("gui.wifi.signgui.signcmd"));
             // commandField.setChangedListener(this::onCommandChanged);
             textField.setMaxLength(384);
             textField.setText(text);
-            textField.setEditableColor(0xFFFFFF);
+            textField.setEditableColor(-1);
             commandField.setMaxLength(32500);
             commandField.setText(command);
-            commandField.setEditableColor(0xFFFFFF);
+            commandField.setEditableColor(-1);
             colorField.setMaxLength(50);
             colorField.setText(color);
-            colorField.setEditableColor(0xFFFFFF);
+            colorField.setEditableColor(-1);
             this.textFields[i] = textField; // 保存文本框对象到数组中
             this.commandField[i] = commandField;
             this.colorFields[i] = colorField;
 
-            this.addDrawableChild(this.textFields[i]); // 添加文本框对象到GUI中
-            this.addDrawableChild(this.colorFields[i]); // 添加文本框对象到GUI中
-            this.addDrawableChild(this.commandField[i]); // 添加文本框对象到GUI中
+            this.addSelectableChild(this.textFields[i]); // 添加文本框对象到GUI中
+            this.addSelectableChild(this.colorFields[i]); // 添加文本框对象到GUI中
+            this.addSelectableChild(this.commandField[i]); // 添加文本框对象到GUI中
 
         }
 
@@ -215,7 +248,7 @@ public class signEditorScreen extends Screen {
                     ClickEvent clickEvent = textStyle.getClickEvent();
                     if (clickEvent != null) {
                         if (clickEvent.getAction().equals(Action.RUN_COMMAND))
-                            command = ((ClickEvent.RunCommand)clickEvent).command();
+                            command = ((ClickEvent.RunCommand) clickEvent).command();
                     }
                 }
                 String color = "black";
@@ -247,7 +280,7 @@ public class signEditorScreen extends Screen {
                 textFields[i].setText(text);
                 colorFields[i].setText(color);
                 commandField[i].setText(command);
-                ;
+
             }
         }).position(this.width / 2 - 104, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         this.addDrawableChild(confirmButton); // 添加确认按钮对象到GUI中
@@ -256,6 +289,7 @@ public class signEditorScreen extends Screen {
         this.addDrawableChild(reloadButton); // 添加重新加载按钮对象到GUI中
         // this.addSelectableChild(commandField); // 添加文本框对象到GUI中
         this.setInitialFocus(this.textFields[0]); // 设置初始焦点为第一个文本框
+
     }
 
     @Override
@@ -269,31 +303,66 @@ public class signEditorScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta); // 渲染背景
-        // this.dra(this.title, this.width / 2, 20, 0xFFFFFFFF, false, , null, null,
-        // 0x00FFFFFF, 0x00FFFFFF);
-        super.render(context, mouseX, mouseY, delta);
-        // 先渲染其他元素
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+        this.renderInGameBackground(context);
+    }
 
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return super.mouseClicked(mouseX, mouseY, button);
+
+    }
+
+    @Override
+    public void resize(MinecraftClient client, int width, int height) {
+        String[] commands = new String[4], colors = new String[4], texts = new String[4];
+        for (int i = 0; i < 4; i++) {
+            commands[i] = this.commandField[i].getText();
+            colors[i] = this.colorFields[i].getText();
+            texts[i] = this.textFields[i].getText();
+        }
+        this.init(client, width, height);
+        for (int i = 0; i < 4; i++) {
+            this.commandField[i].setText(commands[i]);
+            this.colorFields[i].setText(colors[i]);
+            this.textFields[i].setText(texts[i]);
+        }
+    }
+
+    @Override
+    protected Text getUsageNarrationText() {
+        return super.getUsageNarrationText();
+    }
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+        // this.renderBackground(context, mouseX, mouseY, delta); // 渲染背景
+        // 先渲染其他元素
+        super.render(context, mouseX, mouseY, deltaTicks);
         drawCenteredTextWithShadow(context, this.textRenderer, this.titleDisplayer, this.width / 2 - 180, titleTop,
-                0xffffff,
+                -1,
                 true); // 渲染标题0xAARRGGBB
         drawCenteredTextWithShadow(context, this.textRenderer, Text.translatable("gui.wifi.signgui.tip"),
-                this.width / 2 - 180, tipTop, 0xffffff, true);
+                this.width / 2 - 180, tipTop, -1, true);
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
             drawCenteredTextWithShadow(context, this.textRenderer,
                     Text.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 180,
                     TextTipStartPos + i * LineHeight,
-                    0xffffff, true); // 渲染文本标签
+                    -1, true); // 渲染文本标签
             drawCenteredTextWithShadow(context, this.textRenderer,
                     Text.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 180,
                     CommandTipStartPos + i * LineHeight,
-                    0xffffff, true); // 渲染命令标签
+                    -1, true); // 渲染命令标签
+            this.textFields[i].render(context, mouseX, mouseY, deltaTicks);
+            this.colorFields[i].render(context, mouseX, mouseY, deltaTicks);
+            this.commandField[i].render(context, mouseX, mouseY, deltaTicks);
 
         }
-
     }
-
 }

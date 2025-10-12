@@ -25,7 +25,7 @@ import net.minecraft.world.ServerWorldAccess;
 
 public class signgui implements ModInitializer {
     // 常量
-    public static String helloVersion = "1.0.SNAPSHOT";
+    public static String helloVersion = "1.0.1";
     public static Logger LOGGER = LoggerFactory.getLogger("SignEditor");
 
     @Override
@@ -49,7 +49,7 @@ public class signgui implements ModInitializer {
         // 告示牌编辑
         ServerPlayNetworking.registerGlobalReceiver(signEditPayload.ID,
                 (payload, context) -> {
-                    MinecraftServer server = context.player().getServer();
+                    MinecraftServer server = context.server();
                     ServerPlayerEntity client = context.player();
                     // Style style = Text.literal("").getStyle();
                     if (!client.hasPermissionLevel(2)) {
@@ -72,7 +72,7 @@ public class signgui implements ModInitializer {
 
                     boolean facing = payload.isFront;
                     server.execute(() -> {
-                        ServerWorldAccess world = (ServerWorldAccess) player.getWorld();
+                        ServerWorldAccess world = (ServerWorldAccess) player.getEntityWorld();
                         // 获取方块状态和方块实体
                         BlockEntity be = world.getBlockEntity(signPos);
                         // 检查方块是否是告示牌

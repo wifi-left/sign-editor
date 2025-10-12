@@ -3,12 +3,13 @@ package io.wifi.signgui;
 
 import org.lwjgl.glfw.GLFW;
 
+import net.minecraft.util.Identifier;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.hit.BlockHitResult;
@@ -20,9 +21,8 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 public class signguiClient implements ClientModInitializer {
     // 定义一个键绑定
-
-    private static final KeyBinding keyBinding = new KeyBinding("key.signeditorgui.open_gui", InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_V, "category.signeditorgui");
+    private static KeyBinding keyBinding = new KeyBinding("key.signeditorgui.open_gui",
+            GLFW.GLFW_KEY_V, KeyBinding.Category.create(Identifier.tryParse("signedit:misc")));
     // private static final KeyBinding keyBinding2 = new
     // KeyBinding("key.signeditorgui.change_side", InputUtil.Type.KEYSYM,
     // GLFW.GLFW_KEY_G, "category.signeditorgui");
@@ -47,7 +47,6 @@ public class signguiClient implements ClientModInitializer {
             });
             ClientPlayNetworking.send(new signEditablePayload(signgui.helloVersion));
         });
-
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             // 检查键盘是否按下
             while (keyBinding.wasPressed()) {

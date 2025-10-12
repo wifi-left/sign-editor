@@ -6,10 +6,12 @@ import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
@@ -74,10 +76,11 @@ public class signEditorScreen extends Screen {
                 Text.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back")));
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyInput keyInput) {
+        int keyCode = keyInput.asNumber();
         for (int i = 0; i < 4; i++) {
             if (this.commandField[i].isFocused()) {
-                if (super.keyPressed(keyCode, scanCode, modifiers)) {
+                if (super.keyPressed(keyInput)) {
                     return true;
                 } else if (keyCode != 257 && keyCode != 335) {
                     return false;
@@ -91,7 +94,7 @@ public class signEditorScreen extends Screen {
                     return true;
                 }
             } else if (this.textFields[i].isFocused()) {
-                if (super.keyPressed(keyCode, scanCode, modifiers)) {
+                if (super.keyPressed(keyInput)) {
                     return true;
                 } else if (keyCode != 257 && keyCode != 335) {
                     return false;
@@ -101,7 +104,7 @@ public class signEditorScreen extends Screen {
                     return true;
                 }
             } else if (this.colorFields[i].isFocused()) {
-                if (super.keyPressed(keyCode, scanCode, modifiers)) {
+                if (super.keyPressed(keyInput)) {
                     return true;
                 } else if (keyCode != 257 && keyCode != 335) {
                     return false;
@@ -313,9 +316,8 @@ public class signEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return super.mouseClicked(mouseX, mouseY, button);
-
+    public boolean mouseClicked(Click click, boolean doubled) {
+        return super.mouseClicked(click, doubled);
     }
 
     @Override

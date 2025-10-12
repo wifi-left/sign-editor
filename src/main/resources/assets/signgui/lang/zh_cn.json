@@ -7,7 +7,7 @@
     "key.signeditorgui.change_side":"改变修改方向：正面/反面",
     "gui.wifi.signgui.signtext":"第%s行: 文本 & 颜色",
     "gui.wifi.signgui.signcmd":"第%s行: 命令",
-    "category.signeditorgui":"告示牌编辑器",
+    "key.category.signedit.misc":"告示牌编辑器",
     "key.signeditorgui.open_gui":"打开编辑器",
     "msg.signgui.not_a_sign":"这不是一个牌子",
     "msg.signgui.not_a_block":"这不是一个方块",

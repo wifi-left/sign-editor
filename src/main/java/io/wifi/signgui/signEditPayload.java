@@ -10,6 +10,7 @@ public class signEditPayload implements CustomPayload {
     public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui.update_sign";
 
     public static final CustomPayload.Id<signEditPayload> ID = CustomPayload.id(UPDATE_SIGN_PACKET_ID);
+    @SuppressWarnings("null")
     public static final PacketCodec<RegistryByteBuf, signEditPayload> CODEC = PacketCodec.of(signEditPayload::write, signEditPayload::new).cast();
 
     public BlockPos blockPos = new BlockPos(0,0,0);

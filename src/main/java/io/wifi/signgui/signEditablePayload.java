@@ -9,6 +9,7 @@ public class signEditablePayload implements CustomPayload {
     public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui.hello";
 
     public static final CustomPayload.Id<signEditablePayload> ID = CustomPayload.id(UPDATE_SIGN_PACKET_ID);
+    @SuppressWarnings("null")
     public static final PacketCodec<RegistryByteBuf, signEditablePayload> CODEC = PacketCodec
             .of(signEditablePayload::write, signEditablePayload::new).cast();
     public String text = "Unknown";

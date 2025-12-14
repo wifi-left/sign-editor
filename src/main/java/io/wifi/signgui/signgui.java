@@ -12,6 +12,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
+import net.minecraft.command.permission.Permission;
+import net.minecraft.command.permission.PermissionLevel;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.ClickEvent;
@@ -25,9 +27,10 @@ import net.minecraft.world.ServerWorldAccess;
 
 public class signgui implements ModInitializer {
     // 常量
-    public static String helloVersion = "1.0.1";
+    public static String helloVersion = "1.0.2";
     public static Logger LOGGER = LoggerFactory.getLogger("SignEditor");
-
+    public static Permission perm_2 = new Permission.Level(PermissionLevel.GAMEMASTERS); // 2
+    @SuppressWarnings("null")
     @Override
     public void onInitialize() {
         // 注册服务器事件
@@ -52,7 +55,8 @@ public class signgui implements ModInitializer {
                     MinecraftServer server = context.server();
                     ServerPlayerEntity client = context.player();
                     // Style style = Text.literal("").getStyle();
-                    if (!client.hasPermissionLevel(2)) {
+
+                    if (!client.getPermissions().hasPermission(perm_2)) {
                         // style.withColor((TextColor.fromFormatting(Formatting.RED)));
                         client.sendMessage(Text.translatable("msg.signgui.not_op").formatted(Formatting.RED));
 

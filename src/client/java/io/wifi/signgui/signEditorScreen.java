@@ -4,7 +4,6 @@ import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
@@ -56,7 +55,7 @@ public class signEditorScreen extends Screen {
             tipTop = 24;
             FiledHeight = 16;
             LineHeight = 40;
-            FiledStartPos = 44;
+            FiledStartPos = 52;
         } else {
             titleTop = 20;
             tipTop = 36;
@@ -321,14 +320,14 @@ public class signEditorScreen extends Screen {
     }
 
     @Override
-    public void resize(MinecraftClient client, int width, int height) {
+    public void resize(int width, int height) {
         String[] commands = new String[4], colors = new String[4], texts = new String[4];
         for (int i = 0; i < 4; i++) {
             commands[i] = this.commandField[i].getText();
             colors[i] = this.colorFields[i].getText();
             texts[i] = this.textFields[i].getText();
         }
-        this.init(client, width, height);
+        this.init(width, height);
         for (int i = 0; i < 4; i++) {
             this.commandField[i].setText(commands[i]);
             this.colorFields[i].setText(colors[i]);
@@ -349,8 +348,12 @@ public class signEditorScreen extends Screen {
         drawCenteredTextWithShadow(context, this.textRenderer, this.titleDisplayer, this.width / 2 - 180, titleTop,
                 -1,
                 true); // 渲染标题0xAARRGGBB
-        drawCenteredTextWithShadow(context, this.textRenderer, Text.translatable("gui.wifi.signgui.tip"),
+        drawCenteredTextWithShadow(context, this.textRenderer,
+                Text.translatable("gui.wifi.signgui.tip_line1"),
                 this.width / 2 - 180, tipTop, -1, true);
+        drawCenteredTextWithShadow(context, this.textRenderer,
+                Text.translatable("gui.wifi.signgui.tip_line2"),
+                this.width / 2 - 180, tipTop + 12, -1, true);
         for (int i = 0; i < 4; ++i) {
             // 20 + i * 48
             drawCenteredTextWithShadow(context, this.textRenderer,

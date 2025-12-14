@@ -30,6 +30,7 @@ public class signguiClient implements ClientModInitializer {
     public static boolean textIsFront = true;
     public static boolean isOn = false;
 
+    @SuppressWarnings("null")
     @Override
     public void onInitializeClient() {
         // 注册键绑定
@@ -52,13 +53,22 @@ public class signguiClient implements ClientModInitializer {
             while (keyBinding.wasPressed()) {
                 // 判断能否打开GUI
                 if (!signguiClient.isOn) {
-                    client.getMessageHandler().onGameMessage(Text.translatable("msg.signgui.unavailable").formatted(Formatting.YELLOW),false);
-                } else if (!client.player.hasPermissionLevel(2)) {
-
-                    client.inGameHud.setOverlayMessage(
-                            Text.translatable("msg.signgui.not_op").formatted(Formatting.RED), false);
-                    return;
+                    client.getMessageHandler().onGameMessage(
+                            Text.translatable("msg.signgui.unavailable").formatted(Formatting.YELLOW), false);
+                } else {
+                    boolean unable = false;
+                    if (client.player == null)
+                        unable = true;
+                    else if (!client.player.getPermissions().hasPermission(signgui.perm_2)) {
+                        unable = true;
+                    }
+                    if (unable) {
+                        client.inGameHud.setOverlayMessage(
+                                Text.translatable("msg.signgui.not_op").formatted(Formatting.RED), false);
+                        return;
+                    }
                 }
+
                 // 获取玩家当前指向的方块
                 HitResult hitResult = client.crosshairTarget;
                 if (hitResult.getType() == HitResult.Type.BLOCK) {

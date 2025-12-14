@@ -1,6 +1,7 @@
 {
     "gui.wifi.signgui.title": "\u00a7b\u00a7lSign Editor\u00a7r: %s",
-    "gui.wifi.signgui.tip": "\u00a7eUse '&&' or '＆' for '&' and '&' for \u00a7dSection Sign (Formatting). \u00a7e\u00a7lWARN: \u00a7fYou have to install this mod on your server to modify the sign on the server.",
+    "gui.wifi.signgui.tip_line1": "\u00a7eUse '&&' or '＆' for '&' and '&' for \u00a7dSection Sign (Formatting). ",
+    "gui.wifi.signgui.tip_line2": "\u00a7e\u00a7lWARN: \u00a7fYou have to install this mod on your server to modify the sign on the server.",
     "gui.wifi.signgui.front": "Front",
     "gui.wifi.signgui.back": "Back",
     "gui.wifi.signgui.button.changeside": "Change to: %s",

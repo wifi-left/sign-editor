@@ -1,21 +1,21 @@
 package io.wifi.signgui;
 
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public class signEditablePayload implements CustomPayload {
+public class signEditablePayload implements CustomPacketPayload {
     public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui.hello";
 
-    public static final CustomPayload.Id<signEditablePayload> ID = CustomPayload.id(UPDATE_SIGN_PACKET_ID);
+    public static final CustomPacketPayload.Type<signEditablePayload> ID = CustomPacketPayload.createType(UPDATE_SIGN_PACKET_ID);
     @SuppressWarnings("null")
-    public static final PacketCodec<RegistryByteBuf, signEditablePayload> CODEC = PacketCodec
-            .of(signEditablePayload::write, signEditablePayload::new).cast();
+    public static final StreamCodec<RegistryFriendlyByteBuf, signEditablePayload> CODEC = StreamCodec
+            .ofMember(signEditablePayload::write, signEditablePayload::new).cast();
     public String text = "Unknown";
 
-    public signEditablePayload(PacketByteBuf buf) {
-        this.text = buf.readString();
+    public signEditablePayload(FriendlyByteBuf buf) {
+        this.text = buf.readUtf();
     }
 
     public signEditablePayload(String text) {
@@ -23,12 +23,12 @@ public class signEditablePayload implements CustomPayload {
         
     }
 
-    private void write(PacketByteBuf buf) {
-        buf.writeString(this.text);
+    private void write(FriendlyByteBuf buf) {
+        buf.writeUtf(this.text);
     }
 
     @Override
-    public Id<signEditablePayload> getId() {
+    public Type<signEditablePayload> type() {
         return ID;
     }
 }

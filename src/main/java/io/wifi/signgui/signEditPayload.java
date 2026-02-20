@@ -1,17 +1,17 @@
 package io.wifi.signgui;
 
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public class signEditPayload implements CustomPayload {
+public class signEditPayload implements CustomPacketPayload {
     public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui.update_sign";
 
-    public static final CustomPayload.Id<signEditPayload> ID = CustomPayload.id(UPDATE_SIGN_PACKET_ID);
+    public static final CustomPacketPayload.Type<signEditPayload> ID = CustomPacketPayload.createType(UPDATE_SIGN_PACKET_ID);
     @SuppressWarnings("null")
-    public static final PacketCodec<RegistryByteBuf, signEditPayload> CODEC = PacketCodec.of(signEditPayload::write, signEditPayload::new).cast();
+    public static final StreamCodec<RegistryFriendlyByteBuf, signEditPayload> CODEC = StreamCodec.ofMember(signEditPayload::write, signEditPayload::new).cast();
 
     public BlockPos blockPos = new BlockPos(0,0,0);
     public String signTextLines[] = new String[4];
@@ -27,28 +27,28 @@ public class signEditPayload implements CustomPayload {
         this.isFront = isFront;
     }
 
-    public signEditPayload(PacketByteBuf buf) {
+    public signEditPayload(FriendlyByteBuf buf) {
         blockPos = buf.readBlockPos();
         for(int i = 0;i<4;i++){
-            this.signTextLines[i] = buf.readString();
-            this.signTextColors[i] = buf.readString();
-            this.signTextCmds[i] = buf.readString();
+            this.signTextLines[i] = buf.readUtf();
+            this.signTextColors[i] = buf.readUtf();
+            this.signTextCmds[i] = buf.readUtf();
         }
         this.isFront = buf.readBoolean();
     }
 
-    private void write(PacketByteBuf buf) {
+    private void write(FriendlyByteBuf buf) {
         buf.writeBlockPos(this.blockPos);
         for(int i = 0;i<4;i++){
-            buf.writeString(this.signTextLines[i]);
-            buf.writeString(this.signTextColors[i]);
-            buf.writeString(this.signTextCmds[i]);
+            buf.writeUtf(this.signTextLines[i]);
+            buf.writeUtf(this.signTextColors[i]);
+            buf.writeUtf(this.signTextCmds[i]);
         }
         buf.writeBoolean(isFront);
     }
 
     @Override
-    public Id<signEditPayload> getId() {
+    public Type<signEditPayload> type() {
         return ID;
     }
 }

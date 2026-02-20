@@ -9,27 +9,27 @@ import com.mojang.serialization.DataResult;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.SignBlockEntity;
-import net.minecraft.block.entity.SignText;
-import net.minecraft.command.permission.Permission;
-import net.minecraft.command.permission.PermissionLevel;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.ClickEvent.RunCommand;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.text.ClickEvent.RunCommand;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permission;
+import net.minecraft.server.permissions.PermissionLevel;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
 
 public class signgui implements ModInitializer {
     // 常量
     public static String helloVersion = "1.0.2";
     public static Logger LOGGER = LoggerFactory.getLogger("SignEditor");
-    public static Permission perm_2 = new Permission.Level(PermissionLevel.GAMEMASTERS); // 2
+    public static Permission perm_2 = new Permission.HasCommandLevel(PermissionLevel.GAMEMASTERS); // 2
     @SuppressWarnings("null")
     @Override
     public void onInitialize() {
@@ -53,18 +53,18 @@ public class signgui implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(signEditPayload.ID,
                 (payload, context) -> {
                     MinecraftServer server = context.server();
-                    ServerPlayerEntity client = context.player();
+                    ServerPlayer client = context.player();
                     // Style style = Text.literal("").getStyle();
 
-                    if (!client.getPermissions().hasPermission(perm_2)) {
+                    if (!client.permissions().hasPermission(perm_2)) {
                         // style.withColor((TextColor.fromFormatting(Formatting.RED)));
-                        client.sendMessage(Text.translatable("msg.signgui.not_op").formatted(Formatting.RED));
+                        client.sendSystemMessage(Component.translatable("msg.signgui.not_op").withStyle(ChatFormatting.RED));
 
                         return;
                     }
 
                     BlockPos signPos = payload.blockPos;
-                    ServerPlayerEntity player = (ServerPlayerEntity) client;
+                    ServerPlayer player = (ServerPlayer) client;
                     String[] cmdCache = new String[4];
                     String[] textCache = new String[4];
                     String[] colorCache = new String[4];
@@ -76,7 +76,7 @@ public class signgui implements ModInitializer {
 
                     boolean facing = payload.isFront;
                     server.execute(() -> {
-                        ServerWorldAccess world = (ServerWorldAccess) player.getEntityWorld();
+                        ServerLevelAccessor world = (ServerLevelAccessor) player.level();
                         // 获取方块状态和方块实体
                         BlockEntity be = world.getBlockEntity(signPos);
                         // 检查方块是否是告示牌
@@ -86,13 +86,13 @@ public class signgui implements ModInitializer {
                             for (int i = 0; i < 4; ++i) {
                                 // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
                                 String text = textCache[i];
-                                MutableText literalText = Text.literal(text);
+                                MutableComponent literalText = Component.literal(text);
                                 String ColorName = colorCache[i];
                                 if (ColorName == null || ColorName == "")
                                     ColorName = "black";
                                 // TextColor textColor = TextColor.fromFormatting(Formatting.byName(ColorName));
-                                DataResult<TextColor> dataResultTextColor = TextColor.parse((ColorName));
-                                TextColor textColor = TextColor.fromFormatting(Formatting.RESET);
+                                DataResult<TextColor> dataResultTextColor = TextColor.parseColor((ColorName));
+                                TextColor textColor = TextColor.fromLegacyFormat(ChatFormatting.RESET);
                                 try {
                                     textColor = dataResultTextColor.getOrThrow();
                                 } catch (RuntimeException e) {
@@ -110,24 +110,24 @@ public class signgui implements ModInitializer {
                                     literalText.setStyle(literalText.getStyle().withColor(textColor));
                                 }
                                 // signText.withMessage
-                                signText = signText.withMessage(i, literalText); // 设置告示牌方块实体的文本内容
+                                signText = signText.setMessage(i, literalText); // 设置告示牌方块实体的文本内容
                             }
                             boolean res = sign.setText(signText, facing);
                             // System.out.print("Modify result: "+res);
-                            sign.markDirty();
+                            sign.setChanged();
                             // player.openEditSignScreen(sign);
-                            player.networkHandler.sendPacket(sign.toUpdatePacket());
+                            player.connection.send(sign.getUpdatePacket());
                             // world.updateNeighbors(signPos, signState.getBlock());
                             // world.syncWorldEvent(client, 0, signPos, 0);
                             // world.getChunk(signPos).markBlockForPostProcessing(signPos);
                             // style.withColor((TextColor.fromFormatting(Formatting.GREEN)));
                             if (res) {
-                                client.sendMessage(
-                                        Text.translatable("msg.signgui.success").formatted(Formatting.GREEN));
+                                client.sendSystemMessage(
+                                        Component.translatable("msg.signgui.success").withStyle(ChatFormatting.GREEN));
                             } else {
-                                client.sendMessage(
-                                        Text.translatable("msg.signgui.unexpected", "Cannot modify the sign block")
-                                                .formatted(Formatting.YELLOW));
+                                client.sendSystemMessage(
+                                        Component.translatable("msg.signgui.unexpected", "Cannot modify the sign block")
+                                                .withStyle(ChatFormatting.YELLOW));
                             }
                         } else {
                             // String out = (client == null ? "NULL" : client.()) + ":" + signPos.getX() + "

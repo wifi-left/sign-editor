@@ -15,6 +15,10 @@ public class ClientPlatformHelper {
     }
 
     public static void sendToServer(CustomPacketPayload payload) {
-        if (sender != null) sender.send(payload);
+        if (sender != null) {
+            sender.send(payload);
+        } else {
+            throw new IllegalStateException("[SignEditor] ClientPlatformHelper.sendToServer called before a sender was registered.");
+        }
     }
 }

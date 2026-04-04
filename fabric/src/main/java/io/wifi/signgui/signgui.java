@@ -72,7 +72,7 @@ public class signgui implements ModInitializer {
                                 String text = textCache[i];
                                 MutableComponent literalText = Component.literal(text);
                                 String ColorName = colorCache[i];
-                                if (ColorName == null || ColorName == "")
+                                if (ColorName == null || ColorName.isEmpty())
                                     ColorName = "black";
                                 DataResult<TextColor> dataResultTextColor = TextColor.parseColor((ColorName));
                                 TextColor textColor = TextColor.fromLegacyFormat(ChatFormatting.RESET);
@@ -82,7 +82,7 @@ public class signgui implements ModInitializer {
 
                                 }
                                 String cmd = cmdCache[i];
-                                if (cmd != "") {
+                                if (!cmd.isEmpty()) {
                                     ClickEvent clickEvent = new RunCommand(cmd);
                                     literalText
                                             .setStyle(literalText.getStyle().withColor(textColor).withClickEvent(

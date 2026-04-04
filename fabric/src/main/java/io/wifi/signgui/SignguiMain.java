@@ -90,6 +90,7 @@ public class SignguiMain implements ModInitializer {
                     .result()
                     .orElse(Component.empty());
         } catch (Exception e) {
+            SignEditorConstants.LOGGER.warn("[SignEditor] Failed to parse component JSON: {}", e.getMessage());
             return Component.empty();
         }
     }

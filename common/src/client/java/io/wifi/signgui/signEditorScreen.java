@@ -1,7 +1,7 @@
 package io.wifi.signgui;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,7 +17,7 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 
-public class signEditorScreen extends Screen {
+public class SignEditorScreen extends Screen {
 
     // 创建一个文本框数组，用来编辑告示牌的每一行文本
     private EditBox[] textFields = new EditBox[4];
@@ -63,7 +63,7 @@ public class signEditorScreen extends Screen {
         }
     }
 
-    public signEditorScreen(SignBlockEntity sign) {
+    public SignEditorScreen(SignBlockEntity sign) {
         super(Component.translatable("gui.wifi.signgui.title",
                 Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back"))));
         this.sign = sign; // 保存告示牌方块实体对象
@@ -71,6 +71,7 @@ public class signEditorScreen extends Screen {
                 Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back")));
     }
 
+    @Override
     public boolean keyPressed(KeyEvent keyInput) {
         int keyCode = keyInput.getDigit();
         for (int i = 0; i < 4; i++) {
@@ -200,12 +201,15 @@ public class signEditorScreen extends Screen {
             String[] colors = new String[4];
             String[] cmds = new String[4];
             for (int i = 0; i < 4; ++i) {
-                texts[i] = textFields[i].getValue().replaceAll("&&", "\uff06").replaceAll("&", "§").replaceAll("＆", "&");
+                texts[i] = textFields[i].getValue().replaceAll("&&", "\uff06").replaceAll("&", "§").replaceAll("＆",
+                        "&");
                 colors[i] = colorFields[i].getValue();
-                if (colors[i] == null || colors[i].isEmpty()) colors[i] = "black";
+                if (colors[i] == null || colors[i].isEmpty())
+                    colors[i] = "black";
                 cmds[i] = commandField[i].getValue();
             }
-            ClientPlatformHelper.sendToServer(new signEditPayload(pos, texts, colors, cmds, ClientState.textIsFront));
+            ClientPlatformHelper
+                    .sendToServer(new SignEditUpdateBlockPayload(pos, texts, colors, cmds, ClientState.textIsFront));
             // 关闭 GUI & 修改文本
             this.onClose();
         }).pos(this.width / 2 + 4, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
@@ -221,7 +225,8 @@ public class signEditorScreen extends Screen {
                     this.titleDisplayer = Component.translatable("gui.wifi.signgui.title",
                             Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back")));
                     this.changeSideButton.setMessage(Component.translatable("gui.wifi.signgui.button.changeside",
-                            Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "back" : "front"))));
+                            Component
+                                    .translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "back" : "front"))));
                 }).pos(this.width / 2 - 208, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         reloadButton = Button.builder(Component.translatable("gui.wifi.signgui.button.reload"), button -> {
             // 重载文本
@@ -284,14 +289,15 @@ public class signEditorScreen extends Screen {
         super.removed();
     }
 
-    private void drawCenteredTextWithShadow(GuiGraphics matrices, Font textRenderer, Component text, int x, int y,
+    private void drawCenteredTextWithShadow(GuiGraphicsExtractor matrices, Font textRenderer, Component text, int x,
+            int y,
             int color, boolean shadow) {
-        matrices.drawString(textRenderer, text, x, y, color, shadow);
+        matrices.text(textRenderer, text, x - textRenderer.width(text), y, color, shadow);
     }
 
     @Override
-    public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
-        this.renderTransparentBackground(context);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
+        this.extractBlurredBackground(context);
     }
 
     @Override
@@ -326,8 +332,8 @@ public class signEditorScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
-        super.render(context, mouseX, mouseY, deltaTicks);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
+        super.extractRenderState(context, mouseX, mouseY, deltaTicks);
         drawCenteredTextWithShadow(context, this.font, this.titleDisplayer, this.width / 2 - 180, titleTop,
                 -1,
                 true); // 渲染标题
@@ -346,9 +352,9 @@ public class signEditorScreen extends Screen {
                     Component.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 180,
                     CommandTipStartPos + i * LineHeight,
                     -1, true); // 渲染命令标签
-            this.textFields[i].render(context, mouseX, mouseY, deltaTicks);
-            this.colorFields[i].render(context, mouseX, mouseY, deltaTicks);
-            this.commandField[i].render(context, mouseX, mouseY, deltaTicks);
+            // this.textFields[i].render(context, mouseX, mouseY, deltaTicks);
+            // this.colorFields[i].render(context, mouseX, mouseY, deltaTicks);
+            // this.commandField[i].render(context, mouseX, mouseY, deltaTicks);
 
         }
     }

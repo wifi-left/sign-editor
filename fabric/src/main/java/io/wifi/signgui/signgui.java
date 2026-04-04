@@ -20,14 +20,13 @@ import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 
 public class signgui implements ModInitializer {
-    @SuppressWarnings("null")
     @Override
     public void onInitialize() {
         // 注册服务器事件
-        PayloadTypeRegistry.playS2C().register(signEditPayload.ID, signEditPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(signEditPayload.ID, signEditPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(signEditablePayload.ID, signEditablePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(signEditablePayload.ID, signEditablePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(SignEditUpdateBlockPayload.ID, SignEditUpdateBlockPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SignEditUpdateBlockPayload.ID, SignEditUpdateBlockPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(signEditablePayload.ID, signEditablePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(signEditablePayload.ID, signEditablePayload.CODEC);
         // Hello Event
         ServerPlayNetworking.registerGlobalReceiver(signEditablePayload.ID,
                 (payload, context) -> {
@@ -40,7 +39,7 @@ public class signgui implements ModInitializer {
                     ServerPlayNetworking.send(context.player(), new signEditablePayload(SignEditorConstants.helloVersion));
                 });
         // 告示牌编辑
-        ServerPlayNetworking.registerGlobalReceiver(signEditPayload.ID,
+        ServerPlayNetworking.registerGlobalReceiver(SignEditUpdateBlockPayload.ID,
                 (payload, context) -> {
                     MinecraftServer server = context.server();
                     ServerPlayer client = context.player();

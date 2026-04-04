@@ -3,12 +3,11 @@ package io.wifi.signgui;
 import org.lwjgl.glfw.GLFW;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -17,16 +16,15 @@ import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
-public class signguiClient implements ClientModInitializer {
+public class SignguiClient implements ClientModInitializer {
     // 定义一个键绑定
     private static KeyMapping keyBinding = new KeyMapping("key.signeditorgui.open_gui",
-            GLFW.GLFW_KEY_V, KeyMapping.Category.register(Identifier.tryParse("signedit:misc")));
+            GLFW.GLFW_KEY_V, KeyMapping.Category.register(Identifier.parse("signedit:misc")));
 
-    @SuppressWarnings("null")
     @Override
     public void onInitializeClient() {
         // 注册键绑定
-        KeyBindingHelper.registerKeyBinding(keyBinding);
+        KeyMappingHelper.registerKeyMapping(keyBinding);
         // 注册平台相关的数据包发送器
         ClientPlatformHelper.register(ClientPlayNetworking::send);
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
@@ -34,9 +32,8 @@ public class signguiClient implements ClientModInitializer {
             ClientPlayNetworking.registerReceiver(signEditablePayload.ID, (payload, content) -> {
                 String serverHelloVersion = payload.text;
                 if (!serverHelloVersion.equals(SignEditorConstants.helloVersion)) {
-                    client.player.displayClientMessage((Component.translatable("msg.signgui.notsameversion")
-                            .append(serverHelloVersion).append(SignEditorConstants.helloVersion).withStyle(ChatFormatting.YELLOW)),
-                            false);
+                    client.player.sendSystemMessage((Component.translatable("msg.signgui.notsameversion")
+                            .append(serverHelloVersion).append(SignEditorConstants.helloVersion).withStyle(ChatFormatting.YELLOW)));
                 }
                 ClientState.isOn = true;
             });
@@ -47,8 +44,8 @@ public class signguiClient implements ClientModInitializer {
             while (keyBinding.consumeClick()) {
                 // 判断能否打开GUI
                 if (!ClientState.isOn) {
-                    client.player.displayClientMessage(
-                            Component.translatable("msg.signgui.unavailable").withStyle(ChatFormatting.YELLOW), false);
+                    client.player.sendOverlayMessage(
+                            Component.translatable("msg.signgui.unavailable").withStyle(ChatFormatting.YELLOW));
                 } else {
                     boolean unable = false;
                     if (client.player == null)
@@ -57,8 +54,8 @@ public class signguiClient implements ClientModInitializer {
                         unable = true;
                     }
                     if (unable) {
-                        client.player.displayClientMessage(
-                                Component.translatable("msg.signgui.not_op").withStyle(ChatFormatting.RED), true);
+                        client.player.sendOverlayMessage(
+                                Component.translatable("msg.signgui.not_op").withStyle(ChatFormatting.RED));
                         return;
                     }
                 }
@@ -73,14 +70,14 @@ public class signguiClient implements ClientModInitializer {
                     if (blockEntity instanceof SignBlockEntity) {
                         SignBlockEntity sign = (SignBlockEntity) blockEntity;
                         ClientState.textIsFront = sign.isFacingFrontText(client.player);
-                        client.setScreen(new signEditorScreen(sign));
+                        client.setScreen(new SignEditorScreen(sign));
                     } else {
-                        client.player.displayClientMessage(
-                                Component.translatable("msg.signgui.not_a_sign").withStyle(ChatFormatting.RED), true);
+                        client.player.sendOverlayMessage(
+                                Component.translatable("msg.signgui.not_a_sign").withStyle(ChatFormatting.RED));
                     }
                 } else {
-                    client.player.displayClientMessage(
-                            Component.translatable("msg.signgui.not_a_block").withStyle(ChatFormatting.RED), true);
+                    client.player.sendOverlayMessage(
+                            Component.translatable("msg.signgui.not_a_block").withStyle(ChatFormatting.RED));
                 }
             }
         });

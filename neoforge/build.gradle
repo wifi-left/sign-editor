@@ -1,11 +1,16 @@
 plugins {
     id 'net.neoforged.moddev' version "${moddevgradle_version}"
     id 'maven-publish'
+    id 'java-library'
+    id 'idea'
 }
 
 base {
     archivesName = "${archives_base_name}-neoforge"
 }
+
+version = mod_version
+group = maven_group
 
 // Include common sources (main + client both go into NeoForge's single main sourceSet)
 sourceSets {
@@ -22,8 +27,10 @@ sourceSets {
     }
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
 neoForge {
-    version = project.neoforge_version
+    version = project.neo_version
 
     runs {
         client {
@@ -37,17 +44,25 @@ neoForge {
     }
 
     mods {
-        signeditgui {
+        "${mod_id}" {
             sourceSet sourceSets.main
         }
     }
 }
 
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
 processResources {
     inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "neo_version", project.neo_version
 
     filesMatching("META-INF/neoforge.mods.toml") {
         expand "version": inputs.properties.version
+        expand "minecraft_version": inputs.properties.minecraft_version
+        expand "neo_version": inputs.properties.neo_version
     }
 }
 
@@ -68,5 +83,13 @@ publishing {
 
     repositories {
         // Add repositories to publish to here.
+    }
+}
+
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
     }
 }

@@ -31,8 +31,7 @@ public class SignEditorServerHandlers {
             new signEditablePayload(SignEditorConstants.helloVersion));
     }
 
-    @SuppressWarnings("null")
-    public static void handleEdit(signEditPayload payload, IPayloadContext ctx) {
+    public static void handleEdit(SignEditUpdateBlockPayload payload, IPayloadContext ctx) {
         ServerPlayer player = (ServerPlayer) ctx.player();
 
         if (!player.permissions().hasPermission(SignEditorConstants.perm_2)) {

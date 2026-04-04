@@ -12,12 +12,11 @@ public class SignEditorClientHandlers {
         ctx.enqueueWork(() -> {
             Minecraft client = Minecraft.getInstance();
             if (client.player != null && !serverHelloVersion.equals(SignEditorConstants.helloVersion)) {
-                client.player.displayClientMessage(
+                client.player.sendSystemMessage(
                     Component.translatable("msg.signgui.notsameversion")
                         .append(serverHelloVersion)
                         .append(SignEditorConstants.helloVersion)
-                        .withStyle(ChatFormatting.YELLOW),
-                    false);
+                        .withStyle(ChatFormatting.YELLOW));
             }
             ClientState.isOn = true;
         });

@@ -7,7 +7,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @Mod(SignEditorMod.MOD_ID)
@@ -19,9 +18,9 @@ public class SignEditorMod {
         modEventBus.addListener(this::registerPayloads);
 
         // Register client-side event handlers only on the client dist
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            ClientPlatformHelper.register(payload ->
-                net.neoforged.neoforge.network.PacketDistributor.sendToServer(payload));
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+            ClientPlatformHelper.register(
+                    payload -> net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(payload));
             modEventBus.addListener(SignEditorClientMod::registerKeyMappings);
             NeoForge.EVENT_BUS.addListener(SignEditorClientMod::onClientTick);
             NeoForge.EVENT_BUS.addListener(SignEditorClientMod::onPlayerLogin);
@@ -32,18 +31,14 @@ public class SignEditorMod {
         final PayloadRegistrar registrar = event.registrar("1");
         // signEditablePayload is bidirectional: client sends hello, server replies
         registrar.playBidirectional(
-            signEditablePayload.ID,
-            signEditablePayload.CODEC,
-            new DirectionalPayloadHandler<>(
+                signEditablePayload.ID,
+                signEditablePayload.CODEC,
                 SignEditorClientHandlers::handleHello,
-                SignEditorServerHandlers::handleHello
-            )
-        );
+                SignEditorServerHandlers::handleHello);
         // signEditPayload is only sent from client to server
         registrar.playToServer(
-            signEditPayload.ID,
-            signEditPayload.CODEC,
-            SignEditorServerHandlers::handleEdit
-        );
+                SignEditUpdateBlockPayload.ID,
+                SignEditUpdateBlockPayload.CODEC,
+                SignEditorServerHandlers::handleEdit);
     }
 }

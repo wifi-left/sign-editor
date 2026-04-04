@@ -5,9 +5,16 @@ pluginManagement {
             url = 'https://maven.fabricmc.net/'
         }
         maven {
+            name = 'NeoForge'
+            url = 'https://maven.neoforged.net/releases'
+        }
+        maven {
 			url 'https://maven.aliyun.com/repository/central'
 		}
         mavenCentral()
         gradlePluginPortal()
 	}
 }
+
+rootProject.name = 'BambooSignEditor'
+include('common', 'fabric', 'neoforge')

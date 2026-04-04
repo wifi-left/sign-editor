@@ -1,0 +1,75 @@
+plugins {
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+    id 'maven-publish'
+}
+
+base {
+    archivesName = "${archives_base_name}-fabric"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "signeditgui" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+// Include common sources in this build
+sourceSets {
+    main {
+        java {
+            srcDirs += [project(':common').file('src/main/java')]
+        }
+        resources {
+            srcDirs += [project(':common').file('src/main/resources')]
+        }
+    }
+    client {
+        java {
+            srcDirs += [project(':common').file('src/client/java')]
+        }
+    }
+}
+
+configurations {
+    commonJava
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
+
+jar {
+    inputs.property "archivesName", project.base.archivesName
+    from("${rootProject.projectDir}/LICENSE") {
+        rename { "${it}_${inputs.properties.archivesName}" }
+    }
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
+    }
+
+    repositories {
+        // Add repositories to publish to here.
+    }
+}

@@ -1,7 +1,5 @@
 package io.wifi.signgui;
 
-import io.netty.buffer.Unpooled;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -10,7 +8,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.ClickEvent.Action;
 import net.minecraft.network.chat.Component;
@@ -36,7 +33,6 @@ public class signEditorScreen extends Screen {
     private int FiledStartPos = 44;
     private int TextTipStartPos = 48;
     private int CommandTipStartPos = 68;
-    // 创建一个文本框，用来编辑告示牌绑定的命令
     // 创建一个告示牌方块实体对象，用来获取和设置告示牌的数据
 
     private Button confirmButton;
@@ -69,10 +65,10 @@ public class signEditorScreen extends Screen {
 
     public signEditorScreen(SignBlockEntity sign) {
         super(Component.translatable("gui.wifi.signgui.title",
-                Component.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back"))));
+                Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back"))));
         this.sign = sign; // 保存告示牌方块实体对象
         this.titleDisplayer = Component.translatable("gui.wifi.signgui.title",
-                Component.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back")));
+                Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back")));
     }
 
     public boolean keyPressed(KeyEvent keyInput) {
@@ -123,9 +119,8 @@ public class signEditorScreen extends Screen {
 
         calcPositions();
 
-        // this.client.setRep(true); // 设置键盘重复事件
         // 遍历告示牌的每一行文本
-        SignText signText = sign.getText(signguiClient.textIsFront);
+        SignText signText = sign.getText(ClientState.textIsFront);
         for (int i = 0; i < 4; ++i) {
             // 获取告示牌的文本内容
             MutableComponent line = (MutableComponent) signText.getMessage(i, false);
@@ -179,7 +174,6 @@ public class signEditorScreen extends Screen {
             EditBox commandField = new EditBox(this.font, this.width / 2 - 72,
                     FiledStartPos + LineHeight / 2 + i * LineHeight,
                     240, FiledHeight, Component.translatable("gui.wifi.signgui.signcmd"));
-            // commandField.setChangedListener(this::onCommandChanged);
             textField.setMaxLength(384);
             textField.setValue(text);
             textField.setTextColor(-1);
@@ -202,23 +196,16 @@ public class signEditorScreen extends Screen {
         confirmButton = Button.builder(Component.translatable("gui.ok"), button -> {
             // 确认按钮的点击事件，发送数据包给服务器，更新告示牌的文本和命令
             BlockPos pos = sign.getBlockPos();
-
-            FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-            buf.writeBlockPos(pos);
+            String[] texts = new String[4];
+            String[] colors = new String[4];
+            String[] cmds = new String[4];
             for (int i = 0; i < 4; ++i) {
-                // 获取文本框中输入的内容，并解析颜色代码（如果有的话）
-                String text = textFields[i].getValue().replaceAll("&&", "\uff06").replaceAll("&", "§").replaceAll("＆",
-                        "&");
-                String ColorName = colorFields[i].getValue();
-                if (ColorName == null || ColorName == "")
-                    ColorName = "black";
-                String cmd = commandField[i].getValue();
-                buf.writeUtf(text);
-                buf.writeUtf(ColorName);
-                buf.writeUtf(cmd);
+                texts[i] = textFields[i].getValue().replaceAll("&&", "\uff06").replaceAll("&", "§").replaceAll("＆", "&");
+                colors[i] = colorFields[i].getValue();
+                if (colors[i] == null || colors[i].isEmpty()) colors[i] = "black";
+                cmds[i] = commandField[i].getValue();
             }
-            buf.writeBoolean(signguiClient.textIsFront);
-            ClientPlayNetworking.send(new signEditPayload(buf));
+            ClientPlatformHelper.sendToServer(new signEditPayload(pos, texts, colors, cmds, ClientState.textIsFront));
             // 关闭 GUI & 修改文本
             this.onClose();
         }).pos(this.width / 2 + 4, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
@@ -228,17 +215,17 @@ public class signEditorScreen extends Screen {
             this.onClose();
         }).pos(this.width / 2 + 108, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         changeSideButton = Button.builder(Component.translatable("gui.wifi.signgui.button.changeside",
-                Component.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "back" : "front"))), button -> {
-                    // 取消按钮的点击事件，关闭 GUI
-                    signguiClient.textIsFront = !signguiClient.textIsFront;
+                Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "back" : "front"))), button -> {
+                    // 切换告示牌方向
+                    ClientState.textIsFront = !ClientState.textIsFront;
                     this.titleDisplayer = Component.translatable("gui.wifi.signgui.title",
-                            Component.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "front" : "back")));
+                            Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back")));
                     this.changeSideButton.setMessage(Component.translatable("gui.wifi.signgui.button.changeside",
-                            Component.translatable("gui.wifi.signgui." + (signguiClient.textIsFront ? "back" : "front"))));
+                            Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "back" : "front"))));
                 }).pos(this.width / 2 - 208, 4 * LineHeight + FiledStartPos + 8).size(100, 20).build();
         reloadButton = Button.builder(Component.translatable("gui.wifi.signgui.button.reload"), button -> {
             // 重载文本
-            SignText lsignText = sign.getText(signguiClient.textIsFront);
+            SignText lsignText = sign.getText(ClientState.textIsFront);
             for (int i = 0; i < 4; ++i) {
                 // 获取告示牌的文本内容
                 MutableComponent line = (MutableComponent) lsignText.getMessage(i, false);
@@ -278,7 +265,6 @@ public class signEditorScreen extends Screen {
                         e.printStackTrace();
                     }
                 }
-                // 创建一个文本框对象，并设置其位置、大小、最大长度等属性
                 textFields[i].setValue(text);
                 colorFields[i].setValue(color);
                 commandField[i].setValue(command);
@@ -289,7 +275,6 @@ public class signEditorScreen extends Screen {
         this.addRenderableWidget(cancelButton); // 添加取消按钮对象到GUI中
         this.addRenderableWidget(changeSideButton); // 添加切换方向按钮对象到GUI中
         this.addRenderableWidget(reloadButton); // 添加重新加载按钮对象到GUI中
-        // this.addSelectableChild(commandField); // 添加文本框对象到GUI中
         this.setInitialFocus(this.textFields[0]); // 设置初始焦点为第一个文本框
 
     }
@@ -342,12 +327,10 @@ public class signEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
-        // this.renderBackground(context, mouseX, mouseY, delta); // 渲染背景
-        // 先渲染其他元素
         super.render(context, mouseX, mouseY, deltaTicks);
         drawCenteredTextWithShadow(context, this.font, this.titleDisplayer, this.width / 2 - 180, titleTop,
                 -1,
-                true); // 渲染标题0xAARRGGBB
+                true); // 渲染标题
         drawCenteredTextWithShadow(context, this.font,
                 Component.translatable("gui.wifi.signgui.tip_line1"),
                 this.width / 2 - 180, tipTop, -1, true);
@@ -355,7 +338,6 @@ public class signEditorScreen extends Screen {
                 Component.translatable("gui.wifi.signgui.tip_line2"),
                 this.width / 2 - 180, tipTop + 12, -1, true);
         for (int i = 0; i < 4; ++i) {
-            // 20 + i * 48
             drawCenteredTextWithShadow(context, this.font,
                     Component.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 180,
                     TextTipStartPos + i * LineHeight,

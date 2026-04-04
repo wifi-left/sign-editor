@@ -1,0 +1,72 @@
+plugins {
+    id 'net.neoforged.moddev' version "${moddevgradle_version}"
+    id 'maven-publish'
+}
+
+base {
+    archivesName = "${archives_base_name}-neoforge"
+}
+
+// Include common sources (main + client both go into NeoForge's single main sourceSet)
+sourceSets {
+    main {
+        java {
+            srcDirs += [
+                project(':common').file('src/main/java'),
+                project(':common').file('src/client/java')
+            ]
+        }
+        resources {
+            srcDirs += [project(':common').file('src/main/resources')]
+        }
+    }
+}
+
+neoForge {
+    version = project.neoforge_version
+
+    runs {
+        client {
+            client()
+            ideName = "NeoForge Client"
+        }
+        server {
+            server()
+            ideName = "NeoForge Server"
+        }
+    }
+
+    mods {
+        signeditgui {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand "version": inputs.properties.version
+    }
+}
+
+jar {
+    inputs.property "archivesName", project.base.archivesName
+    from("${rootProject.projectDir}/LICENSE") {
+        rename { "${it}_${inputs.properties.archivesName}" }
+    }
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name + "-neoforge"
+            from components.java
+        }
+    }
+
+    repositories {
+        // Add repositories to publish to here.
+    }
+}

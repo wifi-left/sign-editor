@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="CC0-1.0"
+issueTrackerURL="https://github.com/wifi-left"
+
+[[mods]]
+    modId="signeditgui"
+    version="${version}"
+    displayName="Bamboo-Sign-Editor"
+    description="Minecraft Sign Editor (GUI)"
+    logoFile="assets/signgui/icon.png"
+    authors="wifi_left"
+    [[mods.contacts]]
+        homepage="https://github.com/wifi-left"
+        sources="https://github.com/wifi-left"
+
+[[dependencies.signeditgui]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.11,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.signeditgui]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.11,)"
+    ordering="NONE"
+    side="BOTH"

@@ -117,6 +117,7 @@ public class SignEditorScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        this.clearWidgets();
 
         calcPositions();
 
@@ -125,7 +126,7 @@ public class SignEditorScreen extends Screen {
         for (int i = 0; i < 4; ++i) {
             // 获取告示牌的文本内容
             MutableComponent line = (MutableComponent) signText.getMessage(i, false);
-            String text = line.getString().replaceAll("&", "\uff06").replaceAll("§", "&");
+            String text = line.getString().replaceAll("&", "&&").replaceAll("§", "&");
             String command = "";
 
             Style textStyle = line.getStyle();
@@ -138,7 +139,7 @@ public class SignEditorScreen extends Screen {
                 }
 
             }
-            String color = "black";
+            String color = "reset";
             if (textStyle.isBold()) {
                 text = "&l" + text;
             }
@@ -159,7 +160,7 @@ public class SignEditorScreen extends Screen {
                 try {
                     color = ChatColor.serialize();
                 } catch (Exception e) {
-                    color = "black";
+                    color = "reset";
                     e.printStackTrace();
                 }
             }
@@ -188,10 +189,9 @@ public class SignEditorScreen extends Screen {
             this.commandField[i] = commandField;
             this.colorFields[i] = colorField;
 
-            this.addWidget(this.textFields[i]); // 添加文本框对象到GUI中
-            this.addWidget(this.colorFields[i]); // 添加文本框对象到GUI中
-            this.addWidget(this.commandField[i]); // 添加文本框对象到GUI中
-
+            this.addRenderableWidget(this.textFields[i]); // 添加文本框对象到GUI中
+            this.addRenderableWidget(this.colorFields[i]); // 添加文本框对象到GUI中
+            this.addRenderableWidget(this.commandField[i]); // 添加文本框对象到GUI中
         }
 
         confirmButton = Button.builder(Component.translatable("gui.ok"), button -> {
@@ -201,11 +201,11 @@ public class SignEditorScreen extends Screen {
             String[] colors = new String[4];
             String[] cmds = new String[4];
             for (int i = 0; i < 4; ++i) {
-                texts[i] = textFields[i].getValue().replaceAll("&&", "\uff06").replaceAll("&", "§").replaceAll("＆",
+                texts[i] = textFields[i].getValue().replaceAll("&&", "\ufffe").replaceAll("&", "§").replaceAll("\ufffe",
                         "&");
                 colors[i] = colorFields[i].getValue();
                 if (colors[i] == null || colors[i].isEmpty())
-                    colors[i] = "black";
+                    colors[i] = "reset";
                 cmds[i] = commandField[i].getValue();
             }
             ClientPlatformHelper
@@ -245,7 +245,7 @@ public class SignEditorScreen extends Screen {
                             command = ((ClickEvent.RunCommand) clickEvent).command();
                     }
                 }
-                String color = "black";
+                String color = "reset";
                 if (textStyle.isBold()) {
                     text = "&l" + text;
                 }
@@ -266,7 +266,7 @@ public class SignEditorScreen extends Screen {
                     try {
                         color = ChatColor.serialize();
                     } catch (Exception e) {
-                        color = "black";
+                        color = "reset";
                         e.printStackTrace();
                     }
                 }
@@ -289,10 +289,10 @@ public class SignEditorScreen extends Screen {
         super.removed();
     }
 
-    private void drawCenteredTextWithShadow(GuiGraphicsExtractor matrices, Font textRenderer, Component text, int x,
+    private void drawTextWithShadow(GuiGraphicsExtractor matrices, Font textRenderer, Component text, int x,
             int y,
             int color, boolean shadow) {
-        matrices.text(textRenderer, text, x - textRenderer.width(text), y, color, shadow);
+        matrices.text(textRenderer, text, x, y, color, shadow);
     }
 
     @Override
@@ -332,23 +332,22 @@ public class SignEditorScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
+    public void extractRenderState(final GuiGraphicsExtractor context, int mouseX, int mouseY, float deltaTicks) {
         super.extractRenderState(context, mouseX, mouseY, deltaTicks);
-        drawCenteredTextWithShadow(context, this.font, this.titleDisplayer, this.width / 2 - 180, titleTop,
-                -1,
-                true); // 渲染标题
-        drawCenteredTextWithShadow(context, this.font,
+        context.centeredText(this.font, this.titleDisplayer, this.width / 2, titleTop,
+                -1); // 渲染标题
+        context.centeredText(this.font,
                 Component.translatable("gui.wifi.signgui.tip_line1"),
-                this.width / 2 - 180, tipTop, -1, true);
-        drawCenteredTextWithShadow(context, this.font,
+                this.width / 2 , tipTop, -1);
+        context.centeredText(this.font,
                 Component.translatable("gui.wifi.signgui.tip_line2"),
-                this.width / 2 - 180, tipTop + 12, -1, true);
+                this.width / 2 , tipTop + 12, -1);
         for (int i = 0; i < 4; ++i) {
-            drawCenteredTextWithShadow(context, this.font,
+            drawTextWithShadow(context, this.font,
                     Component.translatable("gui.wifi.signgui.signtext", i + 1), this.width / 2 - 180,
                     TextTipStartPos + i * LineHeight,
                     -1, true); // 渲染文本标签
-            drawCenteredTextWithShadow(context, this.font,
+            drawTextWithShadow(context, this.font,
                     Component.translatable("gui.wifi.signgui.signcmd", i + 1), this.width / 2 - 180,
                     CommandTipStartPos + i * LineHeight,
                     -1, true); // 渲染命令标签

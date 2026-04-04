@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 
-public class signgui implements ModInitializer {
+public class SignguiMain implements ModInitializer {
     @Override
     public void onInitialize() {
         // 注册服务器事件

@@ -16,38 +16,40 @@ public class SignEditUpdateBlockPayload implements CustomPacketPayload {
             .ofMember(SignEditUpdateBlockPayload::write, SignEditUpdateBlockPayload::new).cast();
 
     public BlockPos blockPos = new BlockPos(0, 0, 0);
-    public String signTextLines[] = new String[4];
-    public String signTextColors[] = new String[4];
-    public String signTextCmds[] = new String[4];
-    public Boolean isFront = false;
+    /** Serialised Component JSON for each of the 4 sign lines. */
+    public String[] lineJsons = new String[4];
+    public boolean isFront = false;
+    public boolean isGlowing = false;
+    /** DyeColor serialised name, e.g. "black", "red". */
+    public String inkColor = "black";
 
-    public SignEditUpdateBlockPayload(BlockPos blockPos, String signTextLines[], String signTextColors[], String signTextCmds[],
-            Boolean isFront) {
+    public SignEditUpdateBlockPayload(BlockPos blockPos, String[] lineJsons, boolean isFront,
+            boolean isGlowing, String inkColor) {
         this.blockPos = blockPos;
-        this.signTextCmds = signTextCmds;
-        this.signTextColors = signTextColors;
-        this.signTextLines = signTextLines;
+        this.lineJsons = lineJsons;
         this.isFront = isFront;
+        this.isGlowing = isGlowing;
+        this.inkColor = inkColor;
     }
 
     public SignEditUpdateBlockPayload(FriendlyByteBuf buf) {
-        blockPos = buf.readBlockPos();
+        this.blockPos = buf.readBlockPos();
         for (int i = 0; i < 4; i++) {
-            this.signTextLines[i] = buf.readUtf();
-            this.signTextColors[i] = buf.readUtf();
-            this.signTextCmds[i] = buf.readUtf();
+            this.lineJsons[i] = buf.readUtf();
         }
         this.isFront = buf.readBoolean();
+        this.isGlowing = buf.readBoolean();
+        this.inkColor = buf.readUtf();
     }
 
     private void write(FriendlyByteBuf buf) {
         buf.writeBlockPos(this.blockPos);
         for (int i = 0; i < 4; i++) {
-            buf.writeUtf(this.signTextLines[i]);
-            buf.writeUtf(this.signTextColors[i]);
-            buf.writeUtf(this.signTextCmds[i]);
+            buf.writeUtf(this.lineJsons[i]);
         }
-        buf.writeBoolean(isFront);
+        buf.writeBoolean(this.isFront);
+        buf.writeBoolean(this.isGlowing);
+        buf.writeUtf(this.inkColor);
     }
 
     @Override

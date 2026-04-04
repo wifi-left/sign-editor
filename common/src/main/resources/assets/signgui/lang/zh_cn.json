@@ -18,5 +18,14 @@
     "msg.signgui.changefacing":"修改方向为：%s",
     "gui.wifi.signgui.button.reload":"重新加载",
     "msg.signgui.unavailable":"注意：服务器未安装本模组，故模组仅可查看告示牌，无法修改。",
-    "msg.signgui.notsameversion":"注意：服务器安装的本模组的通信协议版本为 %s，而您安装的模组的通信协议版本为 %s，这可能会导致一些问题。"
+    "msg.signgui.notsameversion":"注意：服务器安装的本模组的通信协议版本为 %s，而您安装的模组的通信协议版本为 %s，这可能会导致一些问题。",
+    "gui.wifi.signgui.tab.edit":"编辑",
+    "gui.wifi.signgui.tab.nbt":"NBT预览",
+    "gui.wifi.signgui.glow.label":"发光:",
+    "gui.wifi.signgui.glow.on":"发光: 开",
+    "gui.wifi.signgui.glow.off":"发光: 关",
+    "gui.wifi.signgui.inkcolor":"墨水颜色",
+    "gui.wifi.signgui.inkcolor.label":"墨水颜色:",
+    "gui.wifi.signgui.nbt.copy":"复制命令",
+    "gui.wifi.signgui.nbt.execute":"执行"
 }

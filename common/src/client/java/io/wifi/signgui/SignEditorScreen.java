@@ -23,7 +23,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.multiplayer.ClientSuggestionProvider;
-import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.ClickEvent.Action;
@@ -325,8 +324,8 @@ public class SignEditorScreen extends Screen {
                 .pos(this.width / 2 + 2, nbtBtnY).size(100, 20).build();
 
         // NBT preview MultiLineEditBox
-        int nbtBoxY = TAB_BTN_Y + TAB_BTN_H + 6;
-        int nbtBoxHeight = nbtBtnY - nbtBoxY - 6;
+        int nbtBoxY = TAB_BTN_Y + TAB_BTN_H + 26;
+        int nbtBoxHeight = nbtBtnY - nbtBoxY - 26;
         nbtPreviewBox = MultiLineEditBox.builder().setX(10).setY(nbtBoxY).build(this.font, this.width - 20,
                 nbtBoxHeight,
                 Component.translatable("gui.wifi.signgui.nbt.preview"));
@@ -529,8 +528,8 @@ public class SignEditorScreen extends Screen {
         for (int i = 0; i < 4; i++) {
             if (i > 0)
                 sb.append(",");
-            String json = buildLineJson(i).replace("\\", "\\\\").replace("'", "\\'");
-            sb.append("'").append(json).append("'");
+            String json = buildLineJson(i);
+            sb.append(json);
         }
         String ink = glowColorField != null ? glowColorField.getValue() : "black";
         if (ink == null || ink.isEmpty())
@@ -578,15 +577,15 @@ public class SignEditorScreen extends Screen {
             for (int i = 0; i < 4; ++i) {
                 drawText(context, this.font,
                         Component.translatable("gui.wifi.signgui.signtext", i + 1),
-                        labelX, TextTipStartPos + i * LineHeight, -1);
+                        labelX, TextTipStartPos + i * LineHeight - editScrollOffset, -1);
                 drawText(context, this.font,
                         Component.translatable("gui.wifi.signgui.signcmd", i + 1),
-                        labelX, CommandTipStartPos + i * LineHeight, -1);
+                        labelX, CommandTipStartPos + i * LineHeight - editScrollOffset, -1);
             }
 
             // Glow row labels
             int fieldX = this.width / 2 - 72;
-            int labelY = glowRowTop + (16 - 8) / 2;
+            int labelY = glowRowTop - editScrollOffset + (16 - 8) / 2;
             drawText(context, this.font,
                     Component.translatable("gui.wifi.signgui.glow.label"), fieldX, labelY, -1);
             drawText(context, this.font,
@@ -701,8 +700,7 @@ public class SignEditorScreen extends Screen {
 
     private void updateWidgetPositionsForScroll() {
         int fieldX = this.width / 2 - 72;
-        int colorX = fieldX + 188;
-        int btnX = colorX + 32;
+        int viewportBottom = editViewportTop + editViewportHeight;
 
         for (int i = 0; i < 4; ++i) {
             int ty = FiledStartPos + i * LineHeight - editScrollOffset;
@@ -715,14 +713,36 @@ public class SignEditorScreen extends Screen {
             italicButtons[i].setY(ty);
             underlineButtons[i].setY(ty);
             strikeButtons[i].setY(ty);
+
+            // 行控件：只要与视口有交叉就显示
+            boolean rowVis = ty + FiledHeight > editViewportTop && ty < viewportBottom;
+            boolean cmdVis = cy + FiledHeight > editViewportTop && cy < viewportBottom;
+            setVis(textFields[i], rowVis);
+            setVis(colorFields[i], rowVis);
+            setVis(boldButtons[i], rowVis);
+            setVis(italicButtons[i], rowVis);
+            setVis(underlineButtons[i], rowVis);
+            setVis(strikeButtons[i], rowVis);
+            setVis(commandField[i], cmdVis);
         }
 
-        glowToggleButton.setY(glowRowTop - editScrollOffset);
-        glowColorField.setY(glowRowTop - editScrollOffset);
-        confirmButton.setY(actionButtonTop - editScrollOffset);
-        cancelButton.setY(actionButtonTop - editScrollOffset);
-        changeSideButton.setY(actionButtonTop - editScrollOffset);
-        reloadButton.setY(actionButtonTop - editScrollOffset);
+        int glowY = glowRowTop - editScrollOffset;
+        glowToggleButton.setY(glowY);
+        glowColorField.setY(glowY);
+        boolean glowVis = glowY + 16 > editViewportTop && glowY < viewportBottom;
+        setVis(glowToggleButton, glowVis);
+        setVis(glowColorField, glowVis);
+
+        int actionY = actionButtonTop - editScrollOffset;
+        confirmButton.setY(actionY);
+        cancelButton.setY(actionY);
+        changeSideButton.setY(actionY);
+        reloadButton.setY(actionY);
+        boolean actionVis = actionY + 20 > editViewportTop && actionY < viewportBottom;
+        setVis(confirmButton, actionVis);
+        setVis(cancelButton, actionVis);
+        setVis(changeSideButton, actionVis);
+        setVis(reloadButton, actionVis);
     }
 
     @Override
@@ -908,7 +928,7 @@ public class SignEditorScreen extends Screen {
     // ---- Command Suggestion helpers ----
 
     private void updateCommandSuggestions(int fieldIndex, String value) {
-        if (value == null || value.isEmpty() || !value.startsWith("/")) {
+        if (value == null || value.isEmpty()) {
             hideSuggestions();
             return;
         }
@@ -920,19 +940,16 @@ public class SignEditorScreen extends Screen {
         }
 
         activeSuggestionField = fieldIndex;
-        String cmdWithoutSlash = value.substring(1);
+
+        // 直接用原始输入，不再要求 '/' 前缀
+        int cursor = commandField[fieldIndex].getCursorPosition();
 
         try {
-            ClientSuggestionProvider suggestionProvider = mc.player.connection.getSuggestionsProvider();
-            // Get the dispatcher from the connection, not from the suggestion provider
+            ClientSuggestionProvider provider = mc.player.connection.getSuggestionsProvider();
             CommandDispatcher<ClientSuggestionProvider> dispatcher = mc.player.connection.getCommands();
-            ParseResults<ClientSuggestionProvider> parseResults = dispatcher
-                    .parse(new StringReader(cmdWithoutSlash), suggestionProvider);
+            ParseResults<ClientSuggestionProvider> parse = dispatcher.parse(new StringReader(value), provider);
 
-            CompletableFuture<Suggestions> suggestionsFuture = dispatcher
-                    .getCompletionSuggestions(parseResults);
-
-            suggestionsFuture.thenAccept(suggestions -> {
+            dispatcher.getCompletionSuggestions(parse, cursor).thenAccept(suggestions -> {
                 mc.execute(() -> {
                     if (activeSuggestionField == fieldIndex && commandField[fieldIndex].isFocused()) {
                         currentSuggestions = new ArrayList<>(suggestions.getList());
@@ -955,15 +972,17 @@ public class SignEditorScreen extends Screen {
         EditBox cmdBox = commandField[activeSuggestionField];
         String currentValue = cmdBox.getValue();
 
-        // Apply the suggestion
         int start = suggestion.getRange().getStart();
-        String newValue = "/" + currentValue.substring(1, Math.min(start, currentValue.length() - 1))
-                + suggestion.getText();
+        int end = suggestion.getRange().getEnd();
+
+        String newValue = currentValue.substring(0, start)
+                + suggestion.getText()
+                + currentValue.substring(Math.min(end, currentValue.length()));
+
         cmdBox.setValue(newValue);
-        cmdBox.setCursorPosition(newValue.length());
+        cmdBox.setCursorPosition(start + suggestion.getText().length());
 
         hideSuggestions();
-        // Trigger new suggestions for the updated value
         updateCommandSuggestions(activeSuggestionField, newValue);
     }
 

@@ -28,7 +28,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 
-public class NewSignEditorScreen extends Screen {
+public class SignEditorScreen extends Screen {
 
     // ---- Tab system ----
     private enum Tab { EDIT, NBT_PREVIEW }

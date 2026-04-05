@@ -1,19 +1,18 @@
 package io.wifi.signgui;
 
-import com.mojang.serialization.DataResult;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
@@ -51,16 +50,11 @@ public class SignguiMain implements ModInitializer {
 
                     BlockPos signPos = payload.blockPos;
                     ServerPlayer player = (ServerPlayer) client;
-                    String[] cmdCache = new String[4];
-                    String[] textCache = new String[4];
-                    String[] colorCache = new String[4];
-                    for (int i = 0; i < 4; i++) {
-                        textCache[i] = payload.signTextLines[i];
-                        colorCache[i] = payload.signTextColors[i];
-                        cmdCache[i] = payload.signTextCmds[i];
-                    }
-
+                    String[] lineJsons = payload.lineJsons.clone();
                     boolean facing = payload.isFront;
+                    boolean glowing = payload.isGlowing;
+                    DyeColor inkColor = parseDyeColor(payload.inkColor);
+
                     server.execute(() -> {
                         ServerLevelAccessor world = (ServerLevelAccessor) player.level();
                         BlockEntity be = world.getBlockEntity(signPos);
@@ -68,29 +62,11 @@ public class SignguiMain implements ModInitializer {
                             SignBlockEntity sign = (SignBlockEntity) be;
                             SignText signText = sign.getText(facing);
                             for (int i = 0; i < 4; ++i) {
-                                String text = textCache[i];
-                                MutableComponent literalText = Component.literal(text);
-                                String ColorName = colorCache[i];
-                                if (ColorName == null || ColorName.isEmpty())
-                                    ColorName = "black";
-                                DataResult<TextColor> dataResultTextColor = TextColor.parseColor((ColorName));
-                                TextColor textColor = TextColor.fromLegacyFormat(ChatFormatting.RESET);
-                                try {
-                                    textColor = dataResultTextColor.getOrThrow();
-                                } catch (RuntimeException e) {
-
-                                }
-                                String cmd = cmdCache[i];
-                                if (!cmd.isEmpty()) {
-                                    ClickEvent clickEvent = new RunCommand(cmd);
-                                    literalText
-                                            .setStyle(literalText.getStyle().withColor(textColor).withClickEvent(
-                                                    clickEvent));
-                                } else {
-                                    literalText.setStyle(literalText.getStyle().withColor(textColor));
-                                }
-                                signText = signText.setMessage(i, literalText);
+                                Component comp = componentFromJson(lineJsons[i]);
+                                signText = signText.setMessage(i, comp);
                             }
+                            signText = signText.setHasGlowingText(glowing);
+                            signText = signText.setColor(inkColor);
                             boolean res = sign.setText(signText, facing);
                             sign.setChanged();
                             player.connection.send(sign.getUpdatePacket());
@@ -105,5 +81,26 @@ public class SignguiMain implements ModInitializer {
                         }
                     });
                 });
+    }
+
+    private static Component componentFromJson(String json) {
+        try {
+            return ComponentSerialization.CODEC
+                    .parse(JsonOps.INSTANCE, JsonParser.parseString(json))
+                    .result()
+                    .orElse(Component.empty());
+        } catch (Exception e) {
+            SignEditorConstants.LOGGER.warn("[SignEditor] Failed to parse component JSON: {}", e.getMessage());
+            return Component.empty();
+        }
+    }
+
+    private static DyeColor parseDyeColor(String name) {
+        if (name != null) {
+            for (DyeColor c : DyeColor.values()) {
+                if (c.getSerializedName().equals(name)) return c;
+            }
+        }
+        return DyeColor.BLACK;
     }
 }

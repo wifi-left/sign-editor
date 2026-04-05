@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
-public class SignguiClient implements ClientModInitializer {
+public class SignguiHandlerClient implements ClientModInitializer {
     // 定义一个键绑定
     private static KeyMapping keyBinding = new KeyMapping("key.signeditorgui.open_gui",
             GLFW.GLFW_KEY_V, KeyMapping.Category.register(Identifier.parse("signedit:misc")));

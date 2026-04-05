@@ -19,7 +19,7 @@
   "environment": "*",
   "entrypoints": {
     "client": [
-      "io.wifi.signgui.SignguiClient"
+      "io.wifi.signgui.SignguiHandlerClient"
     ],
     "main": [
       "io.wifi.signgui.SignguiMain"

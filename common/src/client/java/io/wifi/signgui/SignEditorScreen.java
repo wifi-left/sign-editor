@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 
 import net.minecraft.client.Minecraft;
@@ -88,7 +87,7 @@ public class SignEditorScreen extends Screen {
 
     // ---------------------------------------------------------------
 
-    public NewSignEditorScreeneen(SignBlockEntity sign) {
+    public SignEditorScreen(SignBlockEntity sign) {
         super(Component.translatable("gui.wifi.signgui.title",
                 Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back"))));
         this.sign = sign;

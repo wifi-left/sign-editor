@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
-public class SignguiClient implements ClientModInitializer {
+public class NSignguiClient implements ClientModInitializer {
     // 定义一个键绑定
     private static KeyMapping keyBinding = new KeyMapping("key.signeditorgui.open_gui",
             GLFW.GLFW_KEY_V, KeyMapping.Category.register(Identifier.parse("signedit:misc")));
@@ -70,7 +70,7 @@ public class SignguiClient implements ClientModInitializer {
                     if (blockEntity instanceof SignBlockEntity) {
                         SignBlockEntity sign = (SignBlockEntity) blockEntity;
                         ClientState.textIsFront = sign.isFacingFrontText(client.player);
-                        client.setScreen(new SignEditorScreen(sign));
+                        client.setScreen(new NewSignEditorScreen(sign));
                     } else {
                         client.player.sendOverlayMessage(
                                 Component.translatable("msg.signgui.not_a_sign").withStyle(ChatFormatting.RED));

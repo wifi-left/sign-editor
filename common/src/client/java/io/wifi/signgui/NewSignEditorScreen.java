@@ -28,7 +28,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 
-public class SignEditorScreen extends Screen {
+public class NewSignEditorScreen extends Screen {
 
     // ---- Tab system ----
     private enum Tab { EDIT, NBT_PREVIEW }
@@ -88,7 +88,7 @@ public class SignEditorScreen extends Screen {
 
     // ---------------------------------------------------------------
 
-    public SignEditorScreen(SignBlockEntity sign) {
+    public NewSignEditorScreeneen(SignBlockEntity sign) {
         super(Component.translatable("gui.wifi.signgui.title",
                 Component.translatable("gui.wifi.signgui." + (ClientState.textIsFront ? "front" : "back"))));
         this.sign = sign;

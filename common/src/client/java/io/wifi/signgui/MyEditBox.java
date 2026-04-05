@@ -74,6 +74,7 @@ public class MyEditBox extends EditBox {
         graphics.pose().pushMatrix();
         graphics.pose().translate(2, this.getY() - mysteryOffset); // 神秘数字72
         commandSuggestions.extractRenderState(graphics, mouseX - 2, mouseY - (this.getY() - mysteryOffset));
+        graphics.extractDeferredElements(mouseX, mouseY, a);
         graphics.pose().popMatrix();
     }
 

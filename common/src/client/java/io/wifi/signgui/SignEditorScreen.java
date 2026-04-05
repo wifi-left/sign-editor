@@ -106,7 +106,7 @@ public class SignEditorScreen extends Screen {
     private int contentX; // left edge of the field area
     private int contentW; // total width of the field group
     private int textFieldW;
-    private int colorFieldW = 36;
+    private int colorFieldW = 42;
     private int cmdFieldW;
     private int colorFieldX;
     private int btnBaseX;
@@ -132,7 +132,7 @@ public class SignEditorScreen extends Screen {
             tipTop = 36;
             fieldHeight = 16;
             lineHeight = 42;
-            fieldStartPos = 54;
+            fieldStartPos = 64;
         } else {
             titleTop = 22;
             tipTop = 36;
@@ -156,7 +156,7 @@ public class SignEditorScreen extends Screen {
         // Labels are drawn as short "1." "2." etc. to the left of the field group.
         // Field group is centered on screen.
         int labelW = 20; // space for "1." label
-        int btnGroupW = 4 * 15; // B I U S (14px each + 1 gap)
+        int btnGroupW = 2 * 15; // B I U S (14px each + 1 gap)
         // Total: labelW + textFieldW + 2 + colorFieldW + 2 + btnGroupW
         // We want the whole group to be centered.
         int totalContentW = Math.min(380, this.width - 40);
@@ -257,13 +257,13 @@ public class SignEditorScreen extends Screen {
                         toggleFmt(li, "&n");
                         refreshFmtButtons();
                     })
-                    .pos(btnBaseX + 30, ty).size(14, fieldHeight).build();
+                    .pos(btnBaseX, cy).size(14, fieldHeight).build();
             Button strike = Button.builder(fmtBtnLabel("&m", text, "S"),
                     btn -> {
                         toggleFmt(li, "&m");
                         refreshFmtButtons();
                     })
-                    .pos(btnBaseX + 45, ty).size(14, fieldHeight).build();
+                    .pos(btnBaseX + 15, cy).size(14, fieldHeight).build();
 
             textFields[i] = tf;
             colorFields[i] = cf;
@@ -284,9 +284,9 @@ public class SignEditorScreen extends Screen {
 
         // Glow row
         int glowLabelX = contentX;
-        int glowBtnX = glowLabelX + 40;
+        int glowBtnX = glowLabelX + font.width(Component.translatable("gui.wifi.signgui.glow.label")) + 4;
         int glowColorLX = glowBtnX + 56;
-        int glowColorFX = glowColorLX + 36;
+        int glowColorFX = glowColorLX + font.width(Component.translatable("gui.wifi.signgui.inkcolor.label")) + 4;
 
         glowToggleButton = Button
                 .builder(Component.translatable(isGlowing ? "gui.wifi.signgui.glow.on" : "gui.wifi.signgui.glow.off"),
@@ -611,7 +611,7 @@ public class SignEditorScreen extends Screen {
                     Component.translatable("gui.wifi.signgui.tip_line2"), this.width / 2, tipTop + 10, 0xFFAAAAAA);
 
             // Tab highlight underline
-            context.enableScissor(0, tipTop, width, height);
+            context.enableScissor(0, fieldStartPos, width, height);
 
             int labelX = contentX + 2;
             int fieldX = contentX + 20;
@@ -620,7 +620,7 @@ public class SignEditorScreen extends Screen {
 
             for (int i = 0; i < 4; ++i) {
                 int rowTop = fieldStartPos + i * lineHeight - editScrollOffset;
-                int rowBottom = rowTop + lineHeight - 2;
+                int rowBottom = rowTop + lineHeight - 4;
 
                 // Row background panel
                 boolean rowFocused = textFields[i].isFocused() || colorFields[i].isFocused()
@@ -662,7 +662,7 @@ public class SignEditorScreen extends Screen {
                 drawScrollbar(context);
         }
         if (currentTab == Tab.EDIT) {
-            context.enableScissor(0, tipTop, width, height);
+            context.enableScissor(0, fieldStartPos, width, height);
         }
         super.extractRenderState(context, mouseX, mouseY, deltaTicks);
         if (currentTab == Tab.EDIT) {

@@ -2,9 +2,15 @@ package io.wifi.signgui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.serialization.JsonOps;
 
 import net.minecraft.client.Minecraft;
@@ -12,9 +18,12 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.ClickEvent.Action;
@@ -30,7 +39,9 @@ import net.minecraft.world.level.block.entity.SignText;
 public class SignEditorScreen extends Screen {
 
     // ---- Tab system ----
-    private enum Tab { EDIT, NBT_PREVIEW }
+    private enum Tab {
+        EDIT, NBT_PREVIEW
+    }
 
     private static final Pattern FORMAT_CODE_PATTERN = Pattern.compile("^(&[loknm])*");
 
@@ -57,11 +68,29 @@ public class SignEditorScreen extends Screen {
     // ---- NBT-preview widgets ----
     private Button copyNbtCmdButton;
     private Button executeNbtCmdButton;
+    private MultiLineEditBox nbtPreviewBox;
 
     // ---- NBT preview state ----
     private final List<String> nbtLines = new ArrayList<>();
     private int nbtScrollOffset = 0;
     private static final int NBT_LINE_HEIGHT = 10;
+
+    // ---- Scroll state for Edit tab ----
+    private int editScrollOffset = 0;
+    private int maxEditScrollOffset = 0;
+    private static final int SCROLL_BAR_WIDTH = 6;
+    private boolean isDraggingScrollbar = false;
+    private int dragStartY = 0;
+    private int dragStartOffset = 0;
+
+    // ---- Command suggestion state ----
+    private int activeSuggestionField = -1;
+    private List<Suggestion> currentSuggestions = new ArrayList<>();
+    private int suggestionScrollOffset = 0;
+    private int selectedSuggestionIndex = 0;
+    private static final int MAX_VISIBLE_SUGGESTIONS = 8;
+    private static final int SUGGESTION_HEIGHT = 12;
+    private boolean showSuggestions = false;
 
     // ---- Action buttons ----
     private Button confirmButton;
@@ -79,6 +108,9 @@ public class SignEditorScreen extends Screen {
     private int CommandTipStartPos = 72;
     private int glowRowTop;
     private int actionButtonTop;
+    private int editContentHeight; // Total height of edit content
+    private int editViewportHeight; // Visible height for edit content
+    private int editViewportTop; // Top Y of edit viewport
     private static final int TAB_BTN_Y = 2;
     private static final int TAB_BTN_H = 14;
 
@@ -116,6 +148,12 @@ public class SignEditorScreen extends Screen {
         }
         glowRowTop = FiledStartPos + 4 * LineHeight + 4;
         actionButtonTop = glowRowTop + 24;
+
+        // Calculate scroll parameters
+        editViewportTop = TAB_BTN_Y + TAB_BTN_H + 10;
+        editViewportHeight = this.height - editViewportTop - 10;
+        editContentHeight = actionButtonTop + 30 - editViewportTop;
+        maxEditScrollOffset = Math.max(0, editContentHeight - editViewportHeight);
     }
 
     // ---- init ----
@@ -173,19 +211,37 @@ public class SignEditorScreen extends Screen {
             cmd.setMaxLength(32500);
             cmd.setValue(command);
             cmd.setTextColor(-1);
+            // Add responder for command suggestions
+            cmd.setResponder(value -> {
+                if (commandField[li].isFocused()) {
+                    updateCommandSuggestions(li, value);
+                }
+            });
 
             // Format-toggle buttons: B I U S
             Button bold = Button.builder(Component.literal(fmtBtnLabel("&l", text, "B")),
-                    btn -> { toggleFmt(li, "&l"); refreshFmtButtons(); })
+                    btn -> {
+                        toggleFmt(li, "&l");
+                        refreshFmtButtons();
+                    })
                     .pos(btnX, ty).size(14, FiledHeight).build();
             Button italic = Button.builder(Component.literal(fmtBtnLabel("&o", text, "I")),
-                    btn -> { toggleFmt(li, "&o"); refreshFmtButtons(); })
+                    btn -> {
+                        toggleFmt(li, "&o");
+                        refreshFmtButtons();
+                    })
                     .pos(btnX + 15, ty).size(14, FiledHeight).build();
             Button underline = Button.builder(Component.literal(fmtBtnLabel("&n", text, "U")),
-                    btn -> { toggleFmt(li, "&n"); refreshFmtButtons(); })
+                    btn -> {
+                        toggleFmt(li, "&n");
+                        refreshFmtButtons();
+                    })
                     .pos(btnX + 30, ty).size(14, FiledHeight).build();
             Button strike = Button.builder(Component.literal(fmtBtnLabel("&m", text, "S")),
-                    btn -> { toggleFmt(li, "&m"); refreshFmtButtons(); })
+                    btn -> {
+                        toggleFmt(li, "&m");
+                        refreshFmtButtons();
+                    })
                     .pos(btnX + 45, ty).size(14, FiledHeight).build();
 
             textFields[i] = tf;
@@ -268,8 +324,18 @@ public class SignEditorScreen extends Screen {
                 })
                 .pos(this.width / 2 + 2, nbtBtnY).size(100, 20).build();
 
+        // NBT preview MultiLineEditBox
+        int nbtBoxY = TAB_BTN_Y + TAB_BTN_H + 6;
+        int nbtBoxHeight = nbtBtnY - nbtBoxY - 6;
+        nbtPreviewBox = MultiLineEditBox.builder().setX(10).setY(nbtBoxY).build(this.font, this.width - 20,
+                nbtBoxHeight,
+                Component.translatable("gui.wifi.signgui.nbt.preview"));
+        nbtPreviewBox.setValue(buildDataCmd());
+        nbtPreviewBox.setCharacterLimit(65535);
+
         this.addRenderableWidget(copyNbtCmdButton);
         this.addRenderableWidget(executeNbtCmdButton);
+        this.addRenderableWidget(nbtPreviewBox);
 
         this.setInitialFocus(this.textFields[0]);
         updateTabWidgets();
@@ -282,6 +348,10 @@ public class SignEditorScreen extends Screen {
         if (tab == Tab.NBT_PREVIEW) {
             rebuildNbtLines();
             nbtScrollOffset = 0;
+            nbtPreviewBox.setValue(buildDataCmd());
+        } else {
+            editScrollOffset = 0;
+            hideSuggestions();
         }
         updateTabWidgets();
     }
@@ -305,6 +375,7 @@ public class SignEditorScreen extends Screen {
         setVis(reloadButton, edit);
         setVis(copyNbtCmdButton, !edit);
         setVis(executeNbtCmdButton, !edit);
+        setVis(nbtPreviewBox, !edit);
     }
 
     private static void setVis(net.minecraft.client.gui.components.AbstractWidget w, boolean vis) {
@@ -354,11 +425,16 @@ public class SignEditorScreen extends Screen {
     private String lineToEditText(MutableComponent line) {
         String text = line.getString().replaceAll("&", "&&").replaceAll("§", "&");
         Style style = line.getStyle();
-        if (style.isBold()) text = "&l" + text;
-        if (style.isItalic()) text = "&o" + text;
-        if (style.isObfuscated()) text = "&k" + text;
-        if (style.isUnderlined()) text = "&n" + text;
-        if (style.isStrikethrough()) text = "&m" + text;
+        if (style.isBold())
+            text = "&l" + text;
+        if (style.isItalic())
+            text = "&o" + text;
+        if (style.isObfuscated())
+            text = "&k" + text;
+        if (style.isUnderlined())
+            text = "&n" + text;
+        if (style.isStrikethrough())
+            text = "&m" + text;
         return text;
     }
 
@@ -411,7 +487,8 @@ public class SignEditorScreen extends Screen {
             lineJsons[i] = buildLineJson(i);
         }
         String inkColor = glowColorField.getValue();
-        if (inkColor == null || inkColor.isEmpty()) inkColor = "black";
+        if (inkColor == null || inkColor.isEmpty())
+            inkColor = "black";
         ClientPlatformHelper.sendToServer(
                 new SignEditUpdateBlockPayload(pos, lineJsons, ClientState.textIsFront, isGlowing, inkColor));
         this.onClose();
@@ -427,7 +504,8 @@ public class SignEditorScreen extends Screen {
         String colorStr = colorFields[i].getValue();
         if (colorStr != null && !colorStr.isEmpty() && !colorStr.equalsIgnoreCase("reset")) {
             TextColor tc = TextColor.parseColor(colorStr).result().orElse(null);
-            if (tc != null) style = style.withColor(tc);
+            if (tc != null)
+                style = style.withColor(tc);
         }
         String cmd = commandField[i].getValue();
         if (cmd != null && !cmd.isEmpty()) {
@@ -449,12 +527,14 @@ public class SignEditorScreen extends Screen {
         sb.append(pos.getX()).append(" ").append(pos.getY()).append(" ").append(pos.getZ());
         sb.append(" {").append(side).append(":{messages:[");
         for (int i = 0; i < 4; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             String json = buildLineJson(i).replace("\\", "\\\\").replace("'", "\\'");
             sb.append("'").append(json).append("'");
         }
         String ink = glowColorField != null ? glowColorField.getValue() : "black";
-        if (ink == null || ink.isEmpty()) ink = "black";
+        if (ink == null || ink.isEmpty())
+            ink = "black";
         sb.append("],color:\"").append(ink).append("\"");
         sb.append(",has_glowing_text:").append(isGlowing ? "1b" : "0b");
         sb.append("}}");
@@ -512,25 +592,80 @@ public class SignEditorScreen extends Screen {
             drawText(context, this.font,
                     Component.translatable("gui.wifi.signgui.inkcolor.label"), fieldX + 85, labelY, -1);
 
-        } else {
-            // NBT preview
-            int startY = TAB_BTN_Y + TAB_BTN_H + 6;
-            int endY = this.height - 32;
-            int visibleLines = Math.max(1, (endY - startY) / NBT_LINE_HEIGHT);
-            int maxOffset = Math.max(0, nbtLines.size() - visibleLines);
-            nbtScrollOffset = Math.min(nbtScrollOffset, maxOffset);
-
-            for (int i = 0; i < visibleLines && (i + nbtScrollOffset) < nbtLines.size(); i++) {
-                context.text(this.font,
-                        Component.literal(nbtLines.get(i + nbtScrollOffset)),
-                        20, startY + i * NBT_LINE_HEIGHT, -1, false);
+            // Draw scrollbar if needed
+            if (maxEditScrollOffset > 0) {
+                drawScrollbar(context);
             }
 
-            if (nbtLines.size() > visibleLines) {
-                String info = (nbtScrollOffset + 1) + "/" + (maxOffset + 1);
-                context.text(this.font, Component.literal(info),
-                        this.width - 40, this.height - 44, 0xAAAAAA, false);
+            // Draw command suggestions
+            if (showSuggestions && !currentSuggestions.isEmpty() && activeSuggestionField >= 0) {
+                drawSuggestions(context, mouseX, mouseY);
             }
+        }
+        // NBT preview is now handled by MultiLineEditBox widget
+    }
+
+    private void drawScrollbar(GuiGraphicsExtractor context) {
+        int scrollbarX = this.width - SCROLL_BAR_WIDTH - 2;
+        int scrollbarHeight = editViewportHeight;
+        int thumbHeight = Math.max(20, (int) ((float) editViewportHeight / editContentHeight * scrollbarHeight));
+        int thumbY = editViewportTop
+                + (int) ((float) editScrollOffset / maxEditScrollOffset * (scrollbarHeight - thumbHeight));
+
+        // Scrollbar track
+        context.fill(scrollbarX, editViewportTop, scrollbarX + SCROLL_BAR_WIDTH, editViewportTop + scrollbarHeight,
+                0x44FFFFFF);
+        // Scrollbar thumb
+        context.fill(scrollbarX, thumbY, scrollbarX + SCROLL_BAR_WIDTH, thumbY + thumbHeight, 0xAAFFFFFF);
+    }
+
+    private void drawSuggestions(GuiGraphicsExtractor context, int mouseX, int mouseY) {
+        if (activeSuggestionField < 0 || activeSuggestionField >= 4)
+            return;
+        EditBox cmdBox = commandField[activeSuggestionField];
+        int boxX = cmdBox.getX();
+        int boxY = cmdBox.getY() + cmdBox.getHeight();
+
+        int visibleCount = Math.min(currentSuggestions.size() - suggestionScrollOffset, MAX_VISIBLE_SUGGESTIONS);
+        int suggestionWidth = Math.min(280, this.width - boxX - 10);
+        int totalHeight = visibleCount * SUGGESTION_HEIGHT;
+
+        // Background
+        context.fill(boxX, boxY, boxX + suggestionWidth, boxY + totalHeight, 0xE0000000);
+        // Border
+        context.fill(boxX, boxY, boxX + suggestionWidth, boxY + 1, 0xFF808080);
+        context.fill(boxX, boxY + totalHeight - 1, boxX + suggestionWidth, boxY + totalHeight, 0xFF808080);
+        context.fill(boxX, boxY, boxX + 1, boxY + totalHeight, 0xFF808080);
+        context.fill(boxX + suggestionWidth - 1, boxY, boxX + suggestionWidth, boxY + totalHeight, 0xFF808080);
+
+        for (int i = 0; i < visibleCount; i++) {
+            int idx = i + suggestionScrollOffset;
+            if (idx >= currentSuggestions.size())
+                break;
+
+            int itemY = boxY + i * SUGGESTION_HEIGHT;
+            boolean isHovered = mouseX >= boxX && mouseX < boxX + suggestionWidth
+                    && mouseY >= itemY && mouseY < itemY + SUGGESTION_HEIGHT;
+            boolean isSelected = idx == selectedSuggestionIndex;
+
+            if (isSelected || isHovered) {
+                context.fill(boxX + 1, itemY, boxX + suggestionWidth - 1, itemY + SUGGESTION_HEIGHT, 0x80808080);
+            }
+
+            String text = currentSuggestions.get(idx).getText();
+            if (text.length() > 40)
+                text = text.substring(0, 37) + "...";
+            int color = isSelected ? 0xFFFFFF00 : (isHovered ? 0xFFFFFFFF : 0xFFCCCCCC);
+            context.text(this.font, Component.literal(text), boxX + 2, itemY + 2, color, false);
+        }
+
+        // Scroll indicator
+        if (currentSuggestions.size() > MAX_VISIBLE_SUGGESTIONS) {
+            String scrollInfo = (suggestionScrollOffset + 1) + "-" + (suggestionScrollOffset + visibleCount) + "/"
+                    + currentSuggestions.size();
+            context.text(this.font, Component.literal(scrollInfo),
+                    boxX + suggestionWidth - this.font.width(scrollInfo) - 4, boxY + totalHeight + 2, 0xFF888888,
+                    false);
         }
     }
 
@@ -538,33 +673,113 @@ public class SignEditorScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (currentTab == Tab.NBT_PREVIEW) {
-            nbtScrollOffset = Math.max(0, nbtScrollOffset - (int) Math.signum(verticalAmount));
+        // Handle suggestion list scrolling
+        if (showSuggestions && !currentSuggestions.isEmpty() && activeSuggestionField >= 0) {
+            EditBox cmdBox = commandField[activeSuggestionField];
+            int boxX = cmdBox.getX();
+            int boxY = cmdBox.getY() + cmdBox.getHeight();
+            int suggestionWidth = Math.min(280, this.width - boxX - 10);
+            int visibleCount = Math.min(currentSuggestions.size(), MAX_VISIBLE_SUGGESTIONS);
+            int totalHeight = visibleCount * SUGGESTION_HEIGHT;
+
+            if (mouseX >= boxX && mouseX < boxX + suggestionWidth && mouseY >= boxY && mouseY < boxY + totalHeight) {
+                int maxScroll = Math.max(0, currentSuggestions.size() - MAX_VISIBLE_SUGGESTIONS);
+                suggestionScrollOffset = Math.max(0,
+                        Math.min(maxScroll, suggestionScrollOffset - (int) Math.signum(verticalAmount)));
+                return true;
+            }
+        }
+
+        if (currentTab == Tab.EDIT && maxEditScrollOffset > 0) {
+            editScrollOffset = Math.max(0,
+                    Math.min(maxEditScrollOffset, editScrollOffset - (int) (verticalAmount * 10)));
+            updateWidgetPositionsForScroll();
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
+    private void updateWidgetPositionsForScroll() {
+        int fieldX = this.width / 2 - 72;
+        int colorX = fieldX + 188;
+        int btnX = colorX + 32;
+
+        for (int i = 0; i < 4; ++i) {
+            int ty = FiledStartPos + i * LineHeight - editScrollOffset;
+            int cy = FiledStartPos + LineHeight / 2 + i * LineHeight - editScrollOffset;
+
+            textFields[i].setY(ty);
+            colorFields[i].setY(ty);
+            commandField[i].setY(cy);
+            boldButtons[i].setY(ty);
+            italicButtons[i].setY(ty);
+            underlineButtons[i].setY(ty);
+            strikeButtons[i].setY(ty);
+        }
+
+        glowToggleButton.setY(glowRowTop - editScrollOffset);
+        glowColorField.setY(glowRowTop - editScrollOffset);
+        confirmButton.setY(actionButtonTop - editScrollOffset);
+        cancelButton.setY(actionButtonTop - editScrollOffset);
+        changeSideButton.setY(actionButtonTop - editScrollOffset);
+        reloadButton.setY(actionButtonTop - editScrollOffset);
+    }
+
     @Override
     public boolean keyPressed(KeyEvent keyInput) {
         int keyCode = keyInput.getDigit();
+
+        // Handle Tab key for suggestion completion
+        if (keyCode == 258 && showSuggestions && !currentSuggestions.isEmpty() && activeSuggestionField >= 0) { // Tab
+                                                                                                                // key
+            applySuggestion(selectedSuggestionIndex);
+            return true;
+        }
+
+        // Handle up/down arrows for suggestion navigation
+        if (showSuggestions && !currentSuggestions.isEmpty() && activeSuggestionField >= 0) {
+            if (keyCode == 265) { // Up arrow
+                selectedSuggestionIndex = Math.max(0, selectedSuggestionIndex - 1);
+                if (selectedSuggestionIndex < suggestionScrollOffset) {
+                    suggestionScrollOffset = selectedSuggestionIndex;
+                }
+                return true;
+            } else if (keyCode == 264) { // Down arrow
+                selectedSuggestionIndex = Math.min(currentSuggestions.size() - 1, selectedSuggestionIndex + 1);
+                if (selectedSuggestionIndex >= suggestionScrollOffset + MAX_VISIBLE_SUGGESTIONS) {
+                    suggestionScrollOffset = selectedSuggestionIndex - MAX_VISIBLE_SUGGESTIONS + 1;
+                }
+                return true;
+            } else if (keyCode == 257 || keyCode == 335) { // Enter key
+                applySuggestion(selectedSuggestionIndex);
+                return true;
+            } else if (keyCode == 256) { // Escape key
+                hideSuggestions();
+                return true;
+            }
+        }
+
         for (int i = 0; i < 4; i++) {
             if (commandField[i].isFocused()) {
-                if (super.keyPressed(keyInput)) return true;
+                if (super.keyPressed(keyInput))
+                    return true;
                 if (keyCode == 257 || keyCode == 335) {
+                    hideSuggestions();
                     setFocused(textFields[i == 3 ? 0 : i + 1]);
                     return true;
                 }
                 return false;
             } else if (textFields[i].isFocused()) {
-                if (super.keyPressed(keyInput)) return true;
+                if (super.keyPressed(keyInput))
+                    return true;
                 if (keyCode == 257 || keyCode == 335) {
                     setFocused(colorFields[i]);
                     return true;
                 }
                 return false;
             } else if (colorFields[i].isFocused()) {
-                if (super.keyPressed(keyInput)) return true;
+                if (super.keyPressed(keyInput))
+                    return true;
                 if (keyCode == 257 || keyCode == 335) {
                     setFocused(commandField[i]);
                     return true;
@@ -577,7 +792,67 @@ public class SignEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+
+        // Check if clicking on suggestion list
+        if (showSuggestions && !currentSuggestions.isEmpty() && activeSuggestionField >= 0) {
+            EditBox cmdBox = commandField[activeSuggestionField];
+            int boxX = cmdBox.getX();
+            int boxY = cmdBox.getY() + cmdBox.getHeight();
+            int suggestionWidth = Math.min(280, this.width - boxX - 10);
+            int visibleCount = Math.min(currentSuggestions.size() - suggestionScrollOffset, MAX_VISIBLE_SUGGESTIONS);
+            int totalHeight = visibleCount * SUGGESTION_HEIGHT;
+
+            if (mouseX >= boxX && mouseX < boxX + suggestionWidth && mouseY >= boxY && mouseY < boxY + totalHeight) {
+                int clickedIdx = (int) ((mouseY - boxY) / SUGGESTION_HEIGHT) + suggestionScrollOffset;
+                if (clickedIdx >= 0 && clickedIdx < currentSuggestions.size()) {
+                    applySuggestion(clickedIdx);
+                    return true;
+                }
+            } else {
+                // Clicked outside suggestions, hide them
+                hideSuggestions();
+            }
+        }
+
+        // Handle scrollbar dragging
+        if (currentTab == Tab.EDIT && maxEditScrollOffset > 0) {
+            int scrollbarX = this.width - SCROLL_BAR_WIDTH - 2;
+            if (mouseX >= scrollbarX && mouseX < scrollbarX + SCROLL_BAR_WIDTH
+                    && mouseY >= editViewportTop && mouseY < editViewportTop + editViewportHeight) {
+                isDraggingScrollbar = true;
+                dragStartY = (int) mouseY;
+                dragStartOffset = editScrollOffset;
+                return true;
+            }
+        }
+
         return super.mouseClicked(click, doubled);
+    }
+
+    @Override
+    public boolean mouseDragged(final MouseButtonEvent event, double dragX, double dragY) {
+        final double mouseX = event.x();
+        final double mouseY = event.y();
+        final int button = event.button();
+        if (isDraggingScrollbar && maxEditScrollOffset > 0) {
+            int deltaY = (int) mouseY - dragStartY;
+            int scrollbarHeight = editViewportHeight;
+            int thumbHeight = Math.max(20, (int) ((float) editViewportHeight / editContentHeight * scrollbarHeight));
+            float scrollRatio = (float) deltaY / (scrollbarHeight - thumbHeight);
+            editScrollOffset = Math.max(0,
+                    Math.min(maxEditScrollOffset, dragStartOffset + (int) (scrollRatio * maxEditScrollOffset)));
+            updateWidgetPositionsForScroll();
+            return true;
+        }
+        return super.mouseDragged(event, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(final MouseButtonEvent event) {
+        isDraggingScrollbar = false;
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -592,6 +867,7 @@ public class SignEditorScreen extends Screen {
         String glowColor = glowColorField.getValue();
         boolean glow = isGlowing;
         Tab tab = currentTab;
+        int savedEditScroll = editScrollOffset;
 
         this.init(width, height);
 
@@ -606,7 +882,16 @@ public class SignEditorScreen extends Screen {
                 isGlowing ? "gui.wifi.signgui.glow.on" : "gui.wifi.signgui.glow.off"));
         refreshFmtButtons();
         currentTab = tab;
-        if (currentTab == Tab.NBT_PREVIEW) rebuildNbtLines();
+        if (currentTab == Tab.NBT_PREVIEW) {
+            rebuildNbtLines();
+            nbtPreviewBox.setValue(buildDataCmd());
+        }
+        // Restore scroll position (clamped to new max)
+        editScrollOffset = Math.min(savedEditScroll, maxEditScrollOffset);
+        if (editScrollOffset > 0) {
+            updateWidgetPositionsForScroll();
+        }
+        hideSuggestions();
         updateTabWidgets();
     }
 
@@ -618,5 +903,75 @@ public class SignEditorScreen extends Screen {
     @Override
     protected Component getUsageNarration() {
         return super.getUsageNarration();
+    }
+
+    // ---- Command Suggestion helpers ----
+
+    private void updateCommandSuggestions(int fieldIndex, String value) {
+        if (value == null || value.isEmpty() || !value.startsWith("/")) {
+            hideSuggestions();
+            return;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player.connection == null) {
+            hideSuggestions();
+            return;
+        }
+
+        activeSuggestionField = fieldIndex;
+        String cmdWithoutSlash = value.substring(1);
+
+        try {
+            ClientSuggestionProvider suggestionProvider = mc.player.connection.getSuggestionsProvider();
+            // Get the dispatcher from the connection, not from the suggestion provider
+            CommandDispatcher<ClientSuggestionProvider> dispatcher = mc.player.connection.getCommands();
+            ParseResults<ClientSuggestionProvider> parseResults = dispatcher
+                    .parse(new StringReader(cmdWithoutSlash), suggestionProvider);
+
+            CompletableFuture<Suggestions> suggestionsFuture = dispatcher
+                    .getCompletionSuggestions(parseResults);
+
+            suggestionsFuture.thenAccept(suggestions -> {
+                mc.execute(() -> {
+                    if (activeSuggestionField == fieldIndex && commandField[fieldIndex].isFocused()) {
+                        currentSuggestions = new ArrayList<>(suggestions.getList());
+                        selectedSuggestionIndex = 0;
+                        suggestionScrollOffset = 0;
+                        showSuggestions = !currentSuggestions.isEmpty();
+                    }
+                });
+            });
+        } catch (Exception e) {
+            hideSuggestions();
+        }
+    }
+
+    private void applySuggestion(int index) {
+        if (index < 0 || index >= currentSuggestions.size() || activeSuggestionField < 0)
+            return;
+
+        Suggestion suggestion = currentSuggestions.get(index);
+        EditBox cmdBox = commandField[activeSuggestionField];
+        String currentValue = cmdBox.getValue();
+
+        // Apply the suggestion
+        int start = suggestion.getRange().getStart();
+        String newValue = "/" + currentValue.substring(1, Math.min(start, currentValue.length() - 1))
+                + suggestion.getText();
+        cmdBox.setValue(newValue);
+        cmdBox.setCursorPosition(newValue.length());
+
+        hideSuggestions();
+        // Trigger new suggestions for the updated value
+        updateCommandSuggestions(activeSuggestionField, newValue);
+    }
+
+    private void hideSuggestions() {
+        showSuggestions = false;
+        currentSuggestions.clear();
+        activeSuggestionField = -1;
+        selectedSuggestionIndex = 0;
+        suggestionScrollOffset = 0;
     }
 }

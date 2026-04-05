@@ -24,6 +24,6 @@ issueTrackerURL="https://github.com/wifi-left"
 [[dependencies.signeditgui]]
     modId="minecraft"
     type="required"
-    versionRange="[1.21.11,)"
+    versionRange="[26.1,)"
     ordering="NONE"
     side="BOTH"

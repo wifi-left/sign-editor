@@ -70,7 +70,7 @@ public class SignguiHandlerClient implements ClientModInitializer {
                     if (blockEntity instanceof SignBlockEntity) {
                         SignBlockEntity sign = (SignBlockEntity) blockEntity;
                         ClientState.textIsFront = sign.isFacingFrontText(client.player);
-                        client.setScreen(new SignEditorScreen(sign));
+                        client.setScreenAndShow(new SignEditorScreen(sign));
                     } else {
                         client.player.sendOverlayMessage(
                                 Component.translatable("msg.signgui.not_a_sign").withStyle(ChatFormatting.RED));

@@ -24,7 +24,6 @@ public class SignEditorClientMod {
         event.register(OPEN_GUI_KEY);
     }
 
-    @SuppressWarnings("null")
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
@@ -49,7 +48,7 @@ public class SignEditorClientMod {
                 BlockEntity blockEntity = client.level.getBlockEntity(blockPos);
                 if (blockEntity instanceof SignBlockEntity sign) {
                     ClientState.textIsFront = sign.isFacingFrontText(client.player);
-                    client.setScreen(new SignEditorScreen(sign));
+                    client.setScreenAndShow(new SignEditorScreen(sign));
                 } else {
                     client.player.sendOverlayMessage(
                         Component.translatable("msg.signgui.not_a_sign").withStyle(ChatFormatting.RED));

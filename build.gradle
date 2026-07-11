@@ -1,8 +1,14 @@
+plugins {
+    id 'base'               // 添加这一行
+}
 allprojects {
     version = project.mod_version
     group = project.maven_group
 }
 
+clean {
+    delete rootProject.layout.buildDirectory.dir('libs')
+}
 subprojects {
     apply plugin: 'java'
 
@@ -15,4 +21,19 @@ subprojects {
     tasks.withType(JavaCompile).configureEach {
         it.options.release = 25
     }
+}
+// 收集所有子项目中类型为 Jar 的任务（包括主 jar、sourcesJar 等）
+def allJarTasks = subprojects.collectMany { subproject ->
+    subproject.tasks.withType(Jar)
+}
+
+tasks.register('collectJars', Copy) {
+    dependsOn allJarTasks
+    from allJarTasks.collect { it.archiveFile.get() }
+    into rootProject.layout.buildDirectory.dir('libs')
+}
+
+// 让根项目的build任务在完成后执行collectJars
+tasks.named('build') {
+    finalizedBy collectJars
 }

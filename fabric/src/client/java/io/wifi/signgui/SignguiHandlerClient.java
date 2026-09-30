@@ -1,6 +1,7 @@
 package io.wifi.signgui;
 
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -13,13 +14,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
 public class SignguiHandlerClient implements ClientModInitializer {
     // 定义一个键绑定
     private static KeyMapping keyBinding = new KeyMapping("key.signeditorgui.open_gui",
-            GLFW.GLFW_KEY_V, KeyMapping.Category.register(Identifier.parse("signedit:misc")));
+            InputConstants.KEY_V, KeyMapping.Category.register(Identifier.parse("signedit:misc")));
 
     @Override
     public void onInitializeClient() {
@@ -33,7 +35,8 @@ public class SignguiHandlerClient implements ClientModInitializer {
                 String serverHelloVersion = payload.text;
                 if (!serverHelloVersion.equals(SignEditorConstants.helloVersion)) {
                     client.player.sendSystemMessage((Component.translatable("msg.signgui.notsameversion")
-                            .append(serverHelloVersion).append(SignEditorConstants.helloVersion).withStyle(ChatFormatting.YELLOW)));
+                            .append(serverHelloVersion).append(SignEditorConstants.helloVersion)
+                            .withStyle(ChatFormatting.YELLOW)));
                 }
                 ClientState.isOn = true;
             });
@@ -69,7 +72,7 @@ public class SignguiHandlerClient implements ClientModInitializer {
                     // 检查方块是否是告示牌
                     if (blockEntity instanceof SignBlockEntity) {
                         SignBlockEntity sign = (SignBlockEntity) blockEntity;
-                        ClientState.textIsFront = sign.isFacingFrontText(client.player);
+                        ClientState.textIsFront = sign.getSlotPlayerIsFacing(client.player).equals(SignTextSlot.FRONT);
                         client.setScreenAndShow(new SignEditorScreen(sign));
                     } else {
                         client.player.sendOverlayMessage(

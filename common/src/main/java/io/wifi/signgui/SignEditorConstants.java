@@ -6,7 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SignEditorConstants {
-    public static final String helloVersion = "1.0.2";
+    /** Bumped when the wire format changes; 1.0.3 sends components instead of component JSON. */
+    public static final String helloVersion = "1.0.3";
     public static final Logger LOGGER = LoggerFactory.getLogger("SignEditor");
     public static final Permission perm_2 = new Permission.HasCommandLevel(PermissionLevel.GAMEMASTERS);
 }

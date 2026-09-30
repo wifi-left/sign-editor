@@ -1,18 +1,17 @@
 package io.wifi.signgui;
 
-import com.google.gson.JsonParser;
-import com.mojang.serialization.JsonOps;
+import java.util.List;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -38,48 +37,33 @@ public class SignEditorServerHandlers {
             return;
         }
 
-        BlockPos signPos = payload.blockPos;
-        String[] lineJsons = payload.lineJsons.clone();
-        boolean facing = payload.isFront;
-        boolean glowing = payload.isGlowing;
-        DyeColor inkColor = parseDyeColor(payload.inkColor);
+        BlockPos signPos = payload.blockPos();
+        List<Component> lines = payload.lines();
+        SignTextSlot facing = payload.isFront() ? SignTextSlot.FRONT : SignTextSlot.BACK;
+        boolean glowing = payload.isGlowing();
+        DyeColor inkColor = payload.inkColor();
 
         ctx.enqueueWork(() -> {
             ServerLevelAccessor world = (ServerLevelAccessor) player.level();
             BlockEntity be = world.getBlockEntity(signPos);
             if (be instanceof SignBlockEntity sign) {
-                SignText signText = sign.getText(facing);
-                for (int i = 0; i < 4; ++i) {
-                    Component comp = componentFromJson(lineJsons[i]);
-                    signText = signText.setMessage(i, comp);
+                SignText.Mutable signText = sign.getText(facing).asMutable();
+                for (int i = 0; i < 4 && i < lines.size(); ++i) {
+                    signText.setLine(i, lines.get(i));
                 }
-                signText = signText.setHasGlowingText(glowing);
+                signText = signText.setTextGlowing(glowing);
                 signText = signText.setColor(inkColor);
-                boolean res = sign.setText(signText, facing);
-                sign.setChanged();
+                // setText(...) already marks the block entity as changed and notifies clients.
+                sign.setText(signText.asImmutable(), facing);
                 player.connection.send(sign.getUpdatePacket());
-                if (res) {
-                    player.sendSystemMessage(
-                        Component.translatable("msg.signgui.success").withStyle(ChatFormatting.GREEN));
-                } else {
-                    player.sendSystemMessage(
-                        Component.translatable("msg.signgui.unexpected", "Cannot modify the sign block")
-                            .withStyle(ChatFormatting.YELLOW));
-                }
+                player.sendSystemMessage(
+                    Component.translatable("msg.signgui.success").withStyle(ChatFormatting.GREEN));
+            } else {
+                player.sendSystemMessage(
+                    Component.translatable("msg.signgui.unexpected", "Cannot modify the sign block")
+                        .withStyle(ChatFormatting.YELLOW));
             }
         });
-    }
-
-    private static Component componentFromJson(String json) {
-        try {
-            return ComponentSerialization.CODEC
-                    .parse(JsonOps.INSTANCE, JsonParser.parseString(json))
-                    .result()
-                    .orElse(Component.empty());
-        } catch (Exception e) {
-            SignEditorConstants.LOGGER.warn("[SignEditor] Failed to parse component JSON: {}", e.getMessage());
-            return Component.empty();
-        }
     }
 
     private static DyeColor parseDyeColor(String name) {

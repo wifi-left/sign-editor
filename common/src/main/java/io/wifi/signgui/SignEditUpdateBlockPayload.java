@@ -1,55 +1,76 @@
 package io.wifi.signgui;
 
+import java.util.List;
+
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.DyeColor;
 
+/**
+ * Client to server: replace all four lines of one side of a sign.
+ *
+ * <p>The lines travel as {@link Component}s over {@code ComponentSerialization.STREAM_CODEC} rather
+ * than as JSON strings, the same way {@code TitleCommand} hands a component to
+ * {@code ClientboundSetTitleTextPacket}. That removes a whole failure mode: the server used to
+ * re-parse a JSON string with the strict component codec, and anything the codec rejected - a dye
+ * name in a colour field, for instance - silently collapsed the line to an empty component. It also
+ * drops the JSON escaping, which used to roughly double the size of a long click command.
+ */
 public class SignEditUpdateBlockPayload implements CustomPacketPayload {
     public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui:update_sign";
 
     public static final CustomPacketPayload.Type<SignEditUpdateBlockPayload> ID = new Type<>(
             Identifier.tryParse(UPDATE_SIGN_PACKET_ID));
     public static final StreamCodec<RegistryFriendlyByteBuf, SignEditUpdateBlockPayload> CODEC = StreamCodec
-            .ofMember(SignEditUpdateBlockPayload::write, SignEditUpdateBlockPayload::new).cast();
+            .composite(
+                    BlockPos.STREAM_CODEC, SignEditUpdateBlockPayload::blockPos,
+                    ComponentSerialization.STREAM_CODEC.apply(ByteBufCodecs.fixedSizeList(4)),
+                    SignEditUpdateBlockPayload::lines,
+                    ByteBufCodecs.BOOL, SignEditUpdateBlockPayload::isFront,
+                    ByteBufCodecs.BOOL, SignEditUpdateBlockPayload::isGlowing,
+                    DyeColor.STREAM_CODEC, SignEditUpdateBlockPayload::inkColor,
+                    SignEditUpdateBlockPayload::new);
 
-    public BlockPos blockPos = new BlockPos(0, 0, 0);
-    /** Serialised Component JSON for each of the 4 sign lines. */
-    public String[] lineJsons = new String[4];
-    public boolean isFront = false;
-    public boolean isGlowing = false;
-    /** DyeColor serialised name, e.g. "black", "red". */
-    public String inkColor = "black";
+    private final BlockPos blockPos;
+    /** Exactly four components, one per sign line, in order. */
+    private final List<Component> lines;
+    private final boolean isFront;
+    private final boolean isGlowing;
+    private final DyeColor inkColor;
 
-    public SignEditUpdateBlockPayload(BlockPos blockPos, String[] lineJsons, boolean isFront,
-            boolean isGlowing, String inkColor) {
+    public SignEditUpdateBlockPayload(BlockPos blockPos, List<Component> lines, boolean isFront,
+            boolean isGlowing, DyeColor inkColor) {
         this.blockPos = blockPos;
-        this.lineJsons = lineJsons;
+        this.lines = List.copyOf(lines);
         this.isFront = isFront;
         this.isGlowing = isGlowing;
         this.inkColor = inkColor;
     }
 
-    public SignEditUpdateBlockPayload(FriendlyByteBuf buf) {
-        this.blockPos = buf.readBlockPos();
-        for (int i = 0; i < 4; i++) {
-            this.lineJsons[i] = buf.readUtf();
-        }
-        this.isFront = buf.readBoolean();
-        this.isGlowing = buf.readBoolean();
-        this.inkColor = buf.readUtf();
+    public BlockPos blockPos() {
+        return this.blockPos;
     }
 
-    private void write(FriendlyByteBuf buf) {
-        buf.writeBlockPos(this.blockPos);
-        for (int i = 0; i < 4; i++) {
-            buf.writeUtf(this.lineJsons[i]);
-        }
-        buf.writeBoolean(this.isFront);
-        buf.writeBoolean(this.isGlowing);
-        buf.writeUtf(this.inkColor);
+    public List<Component> lines() {
+        return this.lines;
+    }
+
+    public boolean isFront() {
+        return this.isFront;
+    }
+
+    public boolean isGlowing() {
+        return this.isGlowing;
+    }
+
+    public DyeColor inkColor() {
+        return this.inkColor;
     }
 
     @Override

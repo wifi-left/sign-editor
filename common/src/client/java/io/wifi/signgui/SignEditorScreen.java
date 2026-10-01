@@ -39,6 +39,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.entity.SignTextSlot;
@@ -110,6 +111,12 @@ public class SignEditorScreen extends Screen {
     /** Why the fields cannot hold this line; empty when they can. Drives the row warning. */
     private final List<List<Component>> rawReasons = new ArrayList<>(ROWS);
     private boolean isGlowing;
+    /**
+     * The sign's {@code allow_op_features} flag: with it on, the server resolves this sign's text
+     * components and lets their click commands run, and with it off it keeps them exactly as given.
+     * The switch is a view of this, read from the sign on load and sent back with the update.
+     */
+    private boolean allowOpFeatures;
     /** Ink colour of the whole side; a model field so a rebuild cannot revert the user's choice. */
     private TextColor inkColor = TextColor.fromRgb(0);
     private Tab currentTab = Tab.EDIT;
@@ -132,6 +139,7 @@ public class SignEditorScreen extends Screen {
     private final UiButton[] rawMinifyButtons = new UiButton[ROWS];
     private UiButton glowToggle;
     private ColorSwatchButton inkSwatch;
+    private UiButton opToggle;
     private UiButton changeSideButton;
     private UiButton reloadButton;
     private UiButton cancelButton;
@@ -209,6 +217,7 @@ public class SignEditorScreen extends Screen {
         }
         place(this.glowToggle, l.glowToggle);
         place(this.inkSwatch, l.inkSwatch);
+        place(this.opToggle, l.opToggle);
         place(this.changeSideButton, l.changeSideButton());
         place(this.reloadButton, l.reloadButton());
         place(this.cancelButton, l.cancelButton());
@@ -248,6 +257,7 @@ public class SignEditorScreen extends Screen {
         }
         setVis(this.glowToggle, edit);
         setVis(this.inkSwatch, edit);
+        setVis(this.opToggle, edit);
         setVis(this.changeSideButton, edit);
         setVis(this.reloadButton, edit);
         setVis(this.cancelButton, edit);
@@ -260,6 +270,36 @@ public class SignEditorScreen extends Screen {
         this.tabEditButton.toggled(edit);
         this.tabNbtButton.toggled(!edit);
         refreshConfirmState();
+    }
+
+    /**
+     * Flips the switch. It is the sign's own {@code allow_op_features} flag, so changing it changes
+     * nothing on screen but what the label says until the side is applied - the flag travels with the
+     * update and the server stores it, which is what makes it a property of the sign rather than a
+     * setting of this window.
+     */
+    private void setAllowOpFeatures(boolean allow) {
+        if (this.allowOpFeatures == allow) {
+            return;
+        }
+        this.allowOpFeatures = allow;
+        this.opToggle.setMessage(opLabel());
+        this.opToggle.toggled(allow);
+        refreshNbtIfPreviewing();
+    }
+
+    /**
+     * Turns the switch on because the user is typing content that needs it: a click command, or a
+     * component the plain fields cannot hold.
+     *
+     * <p>Only ever called from an edit the user made in one of the fields - never from loading a
+     * side. The flag is stored on the sign, so having one set just by looking at a side would be a
+     * change nobody asked for; the switch itself is how a side that already needs it is turned on.
+     */
+    private void requireOpFeatures() {
+        if (!this.allowOpFeatures) {
+            setAllowOpFeatures(true);
+        }
     }
 
     /** A line whose raw text does not parse would be sent as its last valid form, so OK is barred. */
@@ -422,6 +462,12 @@ public class SignEditorScreen extends Screen {
         this.inkSwatch.setTooltip(
                 Tooltip.create(Component.translatable("gui.wifi.signgui.tooltip.ink")));
 
+        // Op-features switch, at the right end of the ink row; it shows its own state.
+        this.opToggle = UiButton.of(UiButton.Style.TOGGLE, opLabel(),
+                b -> setAllowOpFeatures(!this.allowOpFeatures),
+                l.opToggle.x(), l.opToggle.y(), l.opToggle.w(), l.opToggle.h()).toggled(this.allowOpFeatures);
+        this.opToggle.setTooltip(Tooltip.create(Component.translatable("gui.wifi.signgui.tooltip.allow_op_features")));
+
         // Action row.
         this.changeSideButton = UiButton.of(UiButton.Style.SECONDARY, changeSideLabel(), b -> changeSide(),
                 l.changeSideButton().x(), l.changeSideButton().y(), l.changeSideButton().w(), l.changeSideButton().h());
@@ -442,6 +488,7 @@ public class SignEditorScreen extends Screen {
 
         addRenderableWidget(this.glowToggle);
         addRenderableWidget(this.inkSwatch);
+        addRenderableWidget(this.opToggle);
         addRenderableWidget(this.changeSideButton);
         addRenderableWidget(this.reloadButton);
         addRenderableWidget(this.cancelButton);
@@ -586,6 +633,12 @@ public class SignEditorScreen extends Screen {
                 if (parsed != null) {
                     this.rawComponents[index] = parsed;
                     collectReasons(parsed, Style.EMPTY, null, reasons);
+                    // A component the fields cannot hold is only kept while the sign parses its text,
+                    // which is what the flag is for. The focus is the only thing that tells a typed
+                    // edit from the pushes this same listener gets when a side is loaded.
+                    if (!reasons.isEmpty() && raw.isFocused()) {
+                        requireOpFeatures();
+                    }
                 } else {
                     reasons.add(Component.translatable("msg.signgui.raw_reason.unparseable"));
                 }
@@ -618,6 +671,12 @@ public class SignEditorScreen extends Screen {
             command.setTextColor(0xFFFFFFFF);
             command.setResponder(value -> {
                 this.commands[index] = command.getValue();
+                // A click command only runs on a sign whose flag is set, so writing one asks for the
+                // flag. EditBox only calls its responder for edits, never for setValue, so this is
+                // the user's doing and not the side being loaded.
+                if (!this.commands[index].isBlank()) {
+                    requireOpFeatures();
+                }
                 // This is what actually produces the suggestion list: CommandSuggestions only has a
                 // pending parse to show once updateCommandInfo has run.
                 command.updateCommandInfo();
@@ -761,6 +820,13 @@ public class SignEditorScreen extends Screen {
                 this.isGlowing ? "gui.wifi.signgui.glow.state.on" : "gui.wifi.signgui.glow.state.off");
     }
 
+    /** The switch carries its own state in its caption, so its own name is what it says on screen. */
+    private Component opLabel() {
+        return Component.translatable(this.allowOpFeatures
+                ? "gui.wifi.signgui.allow_op_features.on"
+                : "gui.wifi.signgui.allow_op_features.off");
+    }
+
     private Component changeSideLabel() {
         return Component.translatable("gui.wifi.signgui.button.changeside.to", otherSideName());
     }
@@ -791,6 +857,12 @@ public class SignEditorScreen extends Screen {
 
     // ------------------------------------------------------------------ model loading
 
+    /** The sign's {@code allow_op_features} flag, or off when there is no level to read it from. */
+    private boolean readSignFlag() {
+        Level level = this.sign.getLevel() != null ? this.sign.getLevel() : this.minecraft.level;
+        return level != null && SignOpFeatures.read(this.sign, level.registryAccess());
+    }
+
     /** Re-reads the whole side from the sign block entity into the model. */
     private void reloadFromSign() {
         SignText signText = this.sign.getText(slot());
@@ -799,6 +871,10 @@ public class SignEditorScreen extends Screen {
         // exist yet, and skipping it would leave the ink colour at its default of black.
         this.inkColor = TextColor.fromRgb(signText.getColor().getTextColor() & 0xFFFFFF);
         List<Component> messages = signText.getMessages(false);
+        // The switch is the sign's own flag, so it is read rather than guessed: a side that needs op
+        // features but does not have the flag set is shown as it is, and turning it on is the user's
+        // call. The flag belongs to the block entity, not to this side, so a side switch leaves it be.
+        this.allowOpFeatures = readSignFlag();
         for (int i = 0; i < ROWS; i++) {
             // Raw state is cleared first: keeping a stale raw component would make the reloaded line
             // (or, after a side switch, the other side's line) unreachable.
@@ -825,6 +901,8 @@ public class SignEditorScreen extends Screen {
         if (this.textFields[0] == null) {
             return; // constructor path: init() will build the widgets from what was just loaded
         }
+        this.opToggle.toggled(this.allowOpFeatures);
+        this.opToggle.setMessage(opLabel());
         for (int i = 0; i < ROWS; i++) {
             this.rawFields[i].setValue(this.rawTexts[i]);
             this.nbtToggles[i].toggled(this.rawModes[i]);
@@ -1609,7 +1687,7 @@ public class SignEditorScreen extends Screen {
         }
         ClientPlatformHelper.sendToServer(new SignEditUpdateBlockPayload(
                 this.sign.getBlockPos(), lines, ClientState.textIsFront, this.isGlowing,
-                this.inkSwatch.inkColor()));
+                this.inkSwatch.inkColor(), this.allowOpFeatures));
         this.onClose();
     }
 
@@ -1723,7 +1801,10 @@ public class SignEditorScreen extends Screen {
         String side = ClientState.textIsFront ? "front_text" : "back_text";
         StringBuilder sb = new StringBuilder("/data merge block ")
                 .append(pos.getX()).append(' ').append(pos.getY()).append(' ').append(pos.getZ())
-                .append(" {").append(side).append(":{messages:[");
+                // allow_op_features is the sign's own field rather than one of a side's, so it sits
+                // beside the side compound instead of inside it - the same shape the block entity uses.
+                .append(" {allow_op_features:").append(this.allowOpFeatures ? "1b" : "0b")
+                .append(',').append(side).append(":{messages:[");
         for (int i = 0; i < ROWS; i++) {
             if (i > 0) {
                 sb.append(',');

@@ -55,6 +55,7 @@ public class SignguiMain implements ModInitializer {
                     SignTextSlot facing = payload.isFront() ? SignTextSlot.FRONT : SignTextSlot.BACK;
                     boolean glowing = payload.isGlowing();
                     DyeColor inkColor = payload.inkColor();
+                    boolean allowOpFeatures = payload.allowOpFeatures();
 
                     server.execute(() -> {
                         ServerLevelAccessor world = (ServerLevelAccessor) player.level();
@@ -68,7 +69,11 @@ public class SignguiMain implements ModInitializer {
                             signText = signText.setTextGlowing(glowing);
                             signText = signText.setColor(inkColor);
                             sign.setText(signText.asImmutable(), facing);
-                            player.connection.send(sign.getUpdatePacket());
+                            // Last, and never before the lines: writing the flag loads the block entity
+                            // back, and that load is what parses the lines the flag is meant to apply
+                            // to. setText above stores them exactly as sent.
+                            SignOpFeatures.write(sign, server.registryAccess(), allowOpFeatures);
+                            // player.connection.send(sign.getUpdatePacket());
                             {
                                 client.sendSystemMessage(
                                         Component.translatable("msg.signgui.success").withStyle(ChatFormatting.GREEN));

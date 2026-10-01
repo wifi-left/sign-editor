@@ -21,6 +21,9 @@ import net.minecraft.world.item.DyeColor;
  * re-parse a JSON string with the strict component codec, and anything the codec rejected - a dye
  * name in a colour field, for instance - silently collapsed the line to an empty component. It also
  * drops the JSON escaping, which used to roughly double the size of a long click command.
+ *
+ * <p>{@code allowOpFeatures} rides along because it is stored on the sign: see
+ * {@link SignOpFeatures}.
  */
 public class SignEditUpdateBlockPayload implements CustomPacketPayload {
     public static final String UPDATE_SIGN_PACKET_ID = "signeditorgui:update_sign";
@@ -35,6 +38,7 @@ public class SignEditUpdateBlockPayload implements CustomPacketPayload {
                     ByteBufCodecs.BOOL, SignEditUpdateBlockPayload::isFront,
                     ByteBufCodecs.BOOL, SignEditUpdateBlockPayload::isGlowing,
                     DyeColor.STREAM_CODEC, SignEditUpdateBlockPayload::inkColor,
+                    ByteBufCodecs.BOOL, SignEditUpdateBlockPayload::allowOpFeatures,
                     SignEditUpdateBlockPayload::new);
 
     private final BlockPos blockPos;
@@ -43,14 +47,17 @@ public class SignEditUpdateBlockPayload implements CustomPacketPayload {
     private final boolean isFront;
     private final boolean isGlowing;
     private final DyeColor inkColor;
+    /** The sign's own {@code allow_op_features} flag, as the editor's switch left it. */
+    private final boolean allowOpFeatures;
 
     public SignEditUpdateBlockPayload(BlockPos blockPos, List<Component> lines, boolean isFront,
-            boolean isGlowing, DyeColor inkColor) {
+            boolean isGlowing, DyeColor inkColor, boolean allowOpFeatures) {
         this.blockPos = blockPos;
         this.lines = List.copyOf(lines);
         this.isFront = isFront;
         this.isGlowing = isGlowing;
         this.inkColor = inkColor;
+        this.allowOpFeatures = allowOpFeatures;
     }
 
     public BlockPos blockPos() {
@@ -71,6 +78,10 @@ public class SignEditUpdateBlockPayload implements CustomPacketPayload {
 
     public DyeColor inkColor() {
         return this.inkColor;
+    }
+
+    public boolean allowOpFeatures() {
+        return this.allowOpFeatures;
     }
 
     @Override

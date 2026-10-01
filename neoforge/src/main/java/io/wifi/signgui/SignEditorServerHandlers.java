@@ -42,6 +42,7 @@ public class SignEditorServerHandlers {
         SignTextSlot facing = payload.isFront() ? SignTextSlot.FRONT : SignTextSlot.BACK;
         boolean glowing = payload.isGlowing();
         DyeColor inkColor = payload.inkColor();
+        boolean allowOpFeatures = payload.allowOpFeatures();
 
         ctx.enqueueWork(() -> {
             ServerLevelAccessor world = (ServerLevelAccessor) player.level();
@@ -55,6 +56,10 @@ public class SignEditorServerHandlers {
                 signText = signText.setColor(inkColor);
                 // setText(...) already marks the block entity as changed and notifies clients.
                 sign.setText(signText.asImmutable(), facing);
+                // Last, and never before the lines: writing the flag loads the block entity back, and
+                // that load is what parses the lines the flag is meant to apply to. setText above
+                // stores them exactly as sent.
+                SignOpFeatures.write(sign, player.level().registryAccess(), allowOpFeatures);
                 player.connection.send(sign.getUpdatePacket());
                 player.sendSystemMessage(
                     Component.translatable("msg.signgui.success").withStyle(ChatFormatting.GREEN));

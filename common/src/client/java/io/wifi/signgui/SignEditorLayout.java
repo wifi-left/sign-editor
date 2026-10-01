@@ -118,6 +118,17 @@ public final class SignEditorLayout {
     /** Glow toggle button width. */
     public static final int GLOW_BTN_W = 52;
 
+    /** Gap between the glow group and the ink group on the footer's first row. */
+    public static final int GLOW_INK_GAP = 12;
+
+    /**
+     * The allow-op-features switch, at the right end of the footer's first row. It is sized from the
+     * row's own width rather than from its label, because it has to stay reachable at every width the
+     * panel is allowed; the two captions it shares the row with are drawn truncated instead.
+     */
+    public static final int OP_BTN_MIN_W = 52;
+    public static final int OP_BTN_MAX_W = 96;
+
     /**
      * Upper bound on the width reserved for a {@code Label:} caption. Real widths are clamped to
      * this so an unusually long translation can only make the caption itself overlap, never the
@@ -321,6 +332,11 @@ public final class SignEditorLayout {
         public final Rect glowToggle;
         public final Rect inkLabel;
         public final Rect inkSwatch;
+        /**
+         * The allow-op-features switch: the right end of the footer's first row, after the ink
+         * swatch, and on the edit tab only.
+         */
+        public final Rect opToggle;
         /** The four action buttons, in order: change side, reload, cancel, confirm. */
         public final Rect[] actionButtons;
 
@@ -359,6 +375,7 @@ public final class SignEditorLayout {
             this.glowToggle = b.glowToggle;
             this.inkLabel = b.inkLabel;
             this.inkSwatch = b.inkSwatch;
+            this.opToggle = b.opToggle;
             this.actionButtons = b.actionButtons;
             this.scrollTrack = b.scrollTrack;
             this.scrollThumb = b.scrollThumb;
@@ -426,6 +443,7 @@ public final class SignEditorLayout {
         Rect glowToggle;
         Rect inkLabel;
         Rect inkSwatch;
+        Rect opToggle;
         Rect[] actionButtons;
         Rect scrollTrack;
         Rect scrollThumb;
@@ -640,12 +658,20 @@ public final class SignEditorLayout {
         int footerTop = blockTop + bodyH + FOOTER_GAP;
         b.footer = new Rect(panelX, footerTop, maxW, spec.footerH());
         int glowY = footerTop + spec.footerPadY;
-        int glowLabelW = metrics.glowReserve();
-        int inkLabelW = metrics.inkReserve();
+        // The switch takes the right end of this row and is sized first; the two captions share what
+        // is left. They are drawn truncated to their reserve, so a long translation can only shorten
+        // itself, while the switch - which has to stay reachable at every panel width - never shrinks
+        // away. Sum of the fixed pieces between the left edge and the switch, plus the gap before it.
+        int opW = clamp((innerRight - innerLeft) / 4, OP_BTN_MIN_W, OP_BTN_MAX_W);
+        int fixedW = GAP + GLOW_BTN_W + GLOW_INK_GAP + GAP + COLOR_W + GAP;
+        int captionBudget = Math.max(0, innerRight - innerLeft - fixedW - opW);
+        int glowLabelW = Math.min(metrics.glowReserve(), captionBudget / 2);
+        int inkLabelW = Math.min(metrics.inkReserve(), captionBudget - glowLabelW);
         b.glowLabel = new Rect(innerLeft, glowY, glowLabelW, spec.fieldH);
         b.glowToggle = new Rect(b.glowLabel.right() + GAP, glowY, GLOW_BTN_W, spec.fieldH);
-        b.inkLabel = new Rect(b.glowToggle.right() + 12, glowY, inkLabelW, spec.fieldH);
+        b.inkLabel = new Rect(b.glowToggle.right() + GLOW_INK_GAP, glowY, inkLabelW, spec.fieldH);
         b.inkSwatch = new Rect(b.inkLabel.right() + GAP, glowY, COLOR_W, spec.fieldH);
+        b.opToggle = new Rect(innerRight - opW, glowY, opW, spec.fieldH);
 
         int actionY = glowY + spec.fieldH + spec.footerInnerGap;
         b.actionBtnW = clamp((maxW - 2 * CARD_PAD_X - 3 * ACTION_GAP) / 4, ACTION_BTN_MIN_W, ACTION_BTN_MAX_W);
@@ -667,7 +693,10 @@ public final class SignEditorLayout {
         b.scrollThumb = new Rect(sbX, thumbY, SB_W, thumbH);
 
         // ---- NBT tab ----------------------------------------------------------
-        b.nbtPreview = new Rect(panelX, blockTop, maxW, Math.max(0, actionY - FOOTER_GAP - blockTop));
+        // The preview stops at the footer's top edge rather than at the action row: the switch on the
+        // footer's second row is shown on this tab too, and a box stretching past the footer would
+        // both cover it and take the clicks meant for it.
+        b.nbtPreview = new Rect(panelX, blockTop, maxW, Math.max(0, footerTop - blockTop));
         int nbtBtnW = clamp((maxW - 2 * CARD_PAD_X - ACTION_GAP) / 2, 80, 140);
         int nbtTotalW = 2 * nbtBtnW + ACTION_GAP;
         int nbtX = panelX + Math.floorDiv(maxW - nbtTotalW, 2);
@@ -772,6 +801,7 @@ public final class SignEditorLayout {
             }
             addRect(live, names, "glow.toggle", l.glowToggle, screen, out, where);
             addRect(live, names, "ink.swatch", l.inkSwatch, screen, out, where);
+            addRect(live, names, "op.toggle", l.opToggle, screen, out, where);
             for (int i = 0; i < l.actionButtons.length; i++) {
                 addRect(live, names, "action" + i, l.actionButtons[i], screen, out, where);
             }
@@ -788,6 +818,11 @@ public final class SignEditorLayout {
             addRect(live, names, "nbt.execute", l.nbtExecute, screen, out, where);
             if (l.nbtPreview.intersects(l.nbtCopy) || l.nbtPreview.intersects(l.nbtExecute)) {
                 out.add(where + ": nbt preview overlaps its buttons");
+            }
+            // The preview is added above the pairwise sweep, so the switch it could bury on the NBT
+            // tab needs its own check: the preview takes the clicks of anything drawn before it.
+            if (l.nbtPreview.intersects(l.opToggle)) {
+                out.add(where + ": nbt preview overlaps the op-features switch");
             }
             // (7) minimum usable widths
             if (l.textW < MIN_TEXT_W) {

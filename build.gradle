@@ -22,15 +22,21 @@ subprojects {
         it.options.release = 25
     }
 }
-// 收集所有子项目中类型为 Jar 的任务（包括主 jar、sourcesJar 等）
-def allJarTasks = subprojects.collectMany { subproject ->
-    subproject.tasks.withType(Jar)
+// 只收集可安装的模组本体，即两个 loader 的 jar：
+//   - common 只是共享中间产物，没有 fabric.mod.json / neoforge.mods.toml，跳过；
+//   - 每个模块只取主 jar（archiveClassifier 为空），sources/dev/javadoc 这些带分类器的辅助产物
+//     仍然照常构建，只是不往这里复制。
+def modJarTasks = subprojects.findAll { it.name in ['fabric', 'neoforge'] }.collectMany { subproject ->
+    subproject.tasks.withType(Jar).matching { jar ->
+        jar.archiveClassifier.getOrElse('').isEmpty()
+    }
 }
 
 tasks.register('collectJars', Copy) {
-    dependsOn allJarTasks
-    from allJarTasks.collect { it.archiveFile.get() }
-    into rootProject.layout.buildDirectory.dir('libs')
+    dependsOn modJarTasks
+    from modJarTasks
+    // 按版本分目录存放，这样同一次构建的产物聚在一起，也不会被别的版本或 sources jar 混在一起
+    into rootProject.layout.buildDirectory.dir("libs/${project.version}")
 }
 
 // 让根项目的build任务在完成后执行collectJars

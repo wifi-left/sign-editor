@@ -117,6 +117,19 @@ public class SignEditorScreen extends Screen {
      * The switch is a view of this, read from the sign on load and sent back with the update.
      */
     private boolean allowOpFeatures;
+    /**
+     * The sign's {@code is_waxed} flag: the vanilla honeycomb state, which the sign keeps in a plain
+     * field of its own. Like {@code allow_op_features} it belongs to the whole block entity rather
+     * than to one side, so a side switch leaves it be.
+     *
+     * <p>What it does: while it is on the game refuses to edit the sign by hand and plays
+     * {@code WAXED_SIGN_INTERACT_FAIL} instead, and honeycomb can no longer be applied to it. What it
+     * does <em>not</em> do is gate click commands - {@code SignBlock.useWithoutItem} runs
+     * {@code executeClickCommandsIfPresent} before it ever looks at this flag, and whether a command
+     * actually runs is {@code allow_op_features}' question alone. A command on an unwaxed sign fires
+     * just the same.
+     */
+    private boolean waxed;
     /** Ink colour of the whole side; a model field so a rebuild cannot revert the user's choice. */
     private TextColor inkColor = TextColor.fromRgb(0);
     private Tab currentTab = Tab.EDIT;
@@ -140,6 +153,7 @@ public class SignEditorScreen extends Screen {
     private UiButton glowToggle;
     private ColorSwatchButton inkSwatch;
     private UiButton opToggle;
+    private UiButton waxedToggle;
     private UiButton changeSideButton;
     private UiButton reloadButton;
     private UiButton cancelButton;
@@ -218,6 +232,7 @@ public class SignEditorScreen extends Screen {
         place(this.glowToggle, l.glowToggle);
         place(this.inkSwatch, l.inkSwatch);
         place(this.opToggle, l.opToggle);
+        place(this.waxedToggle, l.waxedToggle);
         place(this.changeSideButton, l.changeSideButton());
         place(this.reloadButton, l.reloadButton());
         place(this.cancelButton, l.cancelButton());
@@ -258,6 +273,7 @@ public class SignEditorScreen extends Screen {
         setVis(this.glowToggle, edit);
         setVis(this.inkSwatch, edit);
         setVis(this.opToggle, edit);
+        setVis(this.waxedToggle, edit);
         setVis(this.changeSideButton, edit);
         setVis(this.reloadButton, edit);
         setVis(this.cancelButton, edit);
@@ -300,6 +316,22 @@ public class SignEditorScreen extends Screen {
         if (!this.allowOpFeatures) {
             setAllowOpFeatures(true);
         }
+    }
+
+    /**
+     * Flips the waxed switch. It is the sign's own {@code is_waxed} flag, so nothing on screen
+     * changes but the label until the side is applied. The side switch does not touch it, and the
+     * change-side button does not undo it, for the same reason {@code allow_op_features} is not
+     * undone: both belong to the block entity rather than to the side being edited.
+     */
+    private void setWaxed(boolean waxed) {
+        if (this.waxed == waxed) {
+            return;
+        }
+        this.waxed = waxed;
+        this.waxedToggle.setMessage(waxedLabel());
+        this.waxedToggle.toggled(waxed);
+        refreshNbtIfPreviewing();
     }
 
     /** A line whose raw text does not parse would be sent as its last valid form, so OK is barred. */
@@ -468,6 +500,12 @@ public class SignEditorScreen extends Screen {
                 l.opToggle.x(), l.opToggle.y(), l.opToggle.w(), l.opToggle.h()).toggled(this.allowOpFeatures);
         this.opToggle.setTooltip(Tooltip.create(Component.translatable("gui.wifi.signgui.tooltip.allow_op_features")));
 
+        // Waxed switch, immediately left of the op-features one; it shows its own state too.
+        this.waxedToggle = UiButton.of(UiButton.Style.TOGGLE, waxedLabel(),
+                b -> setWaxed(!this.waxed),
+                l.waxedToggle.x(), l.waxedToggle.y(), l.waxedToggle.w(), l.waxedToggle.h()).toggled(this.waxed);
+        this.waxedToggle.setTooltip(Tooltip.create(Component.translatable("gui.wifi.signgui.tooltip.waxed")));
+
         // Action row.
         this.changeSideButton = UiButton.of(UiButton.Style.SECONDARY, changeSideLabel(), b -> changeSide(),
                 l.changeSideButton().x(), l.changeSideButton().y(), l.changeSideButton().w(), l.changeSideButton().h());
@@ -489,6 +527,7 @@ public class SignEditorScreen extends Screen {
         addRenderableWidget(this.glowToggle);
         addRenderableWidget(this.inkSwatch);
         addRenderableWidget(this.opToggle);
+        addRenderableWidget(this.waxedToggle);
         addRenderableWidget(this.changeSideButton);
         addRenderableWidget(this.reloadButton);
         addRenderableWidget(this.cancelButton);
@@ -827,6 +866,13 @@ public class SignEditorScreen extends Screen {
                 : "gui.wifi.signgui.allow_op_features.off");
     }
 
+    /** As with the op-features switch, the waxed switch is its own caption. */
+    private Component waxedLabel() {
+        return Component.translatable(this.waxed
+                ? "gui.wifi.signgui.waxed.on"
+                : "gui.wifi.signgui.waxed.off");
+    }
+
     private Component changeSideLabel() {
         return Component.translatable("gui.wifi.signgui.button.changeside.to", otherSideName());
     }
@@ -875,6 +921,11 @@ public class SignEditorScreen extends Screen {
         // features but does not have the flag set is shown as it is, and turning it on is the user's
         // call. The flag belongs to the block entity, not to this side, so a side switch leaves it be.
         this.allowOpFeatures = readSignFlag();
+        // The waxed flag is a plain field of the block entity with a public reader, so it needs none
+        // of the NBT round trip SignOpFeatures has to do, and the client's copy of it is synced the
+        // same way the lines are. It belongs to the block entity as a whole, like allow_op_features,
+        // so a side switch leaves it as it was.
+        this.waxed = this.sign.isWaxed();
         for (int i = 0; i < ROWS; i++) {
             // Raw state is cleared first: keeping a stale raw component would make the reloaded line
             // (or, after a side switch, the other side's line) unreachable.
@@ -903,6 +954,8 @@ public class SignEditorScreen extends Screen {
         }
         this.opToggle.toggled(this.allowOpFeatures);
         this.opToggle.setMessage(opLabel());
+        this.waxedToggle.toggled(this.waxed);
+        this.waxedToggle.setMessage(waxedLabel());
         for (int i = 0; i < ROWS; i++) {
             this.rawFields[i].setValue(this.rawTexts[i]);
             this.nbtToggles[i].toggled(this.rawModes[i]);
@@ -1687,7 +1740,7 @@ public class SignEditorScreen extends Screen {
         }
         ClientPlatformHelper.sendToServer(new SignEditUpdateBlockPayload(
                 this.sign.getBlockPos(), lines, ClientState.textIsFront, this.isGlowing,
-                this.inkSwatch.inkColor(), this.allowOpFeatures));
+                this.inkSwatch.inkColor(), this.allowOpFeatures, this.waxed));
         this.onClose();
     }
 
@@ -1801,9 +1854,11 @@ public class SignEditorScreen extends Screen {
         String side = ClientState.textIsFront ? "front_text" : "back_text";
         StringBuilder sb = new StringBuilder("/data merge block ")
                 .append(pos.getX()).append(' ').append(pos.getY()).append(' ').append(pos.getZ())
-                // allow_op_features is the sign's own field rather than one of a side's, so it sits
-                // beside the side compound instead of inside it - the same shape the block entity uses.
+                // allow_op_features and is_waxed are the sign's own fields rather than one of a
+                // side's, so they sit beside the side compound instead of inside it - the same shape
+                // the block entity uses, and the same one the vanilla command would have to write.
                 .append(" {allow_op_features:").append(this.allowOpFeatures ? "1b" : "0b")
+                .append(",is_waxed:").append(this.waxed ? "1b" : "0b")
                 .append(',').append(side).append(":{messages:[");
         for (int i = 0; i < ROWS; i++) {
             if (i > 0) {

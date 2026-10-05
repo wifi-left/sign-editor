@@ -1,24 +1,20 @@
 package io.wifi.signgui;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+/**
+ * The NeoForge end of the handshake reply.
+ *
+ * <p>The work is in {@link SignEditorClientLogic}, and nothing here names a client class - not even
+ * to pass one in. That is deliberate: this file sits in the same source set as
+ * {@link SignEditorServerHandlers}, so it is on a dedicated server's classpath and is loaded there
+ * (the payload registration mentions it), and a client class in its constant pool is exactly what
+ * that arrangement must avoid.
+ */
 public class SignEditorClientHandlers {
 
     public static void handleHello(signEditablePayload payload, IPayloadContext ctx) {
         String serverHelloVersion = payload.text;
-        ctx.enqueueWork(() -> {
-            Minecraft client = Minecraft.getInstance();
-            if (client.player != null && !serverHelloVersion.equals(SignEditorConstants.helloVersion)) {
-                client.player.sendSystemMessage(
-                    Component.translatable("msg.signgui.notsameversion")
-                        .append(serverHelloVersion)
-                        .append(SignEditorConstants.helloVersion)
-                        .withStyle(ChatFormatting.YELLOW));
-            }
-            ClientState.isOn = true;
-        });
+        ctx.enqueueWork(() -> SignEditorClientLogic.handleHello(serverHelloVersion));
     }
 }
